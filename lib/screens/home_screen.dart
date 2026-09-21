@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/flight_entry.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
+import 'flight_detail_screen.dart';
 import 'flight_form_screen.dart';
 import 'media_import_screen.dart';
 import 'notes_import_screen.dart';
@@ -102,36 +103,49 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _openForm({FlightEntry? existing}) async {
+  Future<void> _createFlight() async {
     final result = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
         builder: (_) => FlightFormScreen(
-          existing: existing,
           knownSites: _sites,
           knownRuns: _runs,
           knownWings: _wings,
         ),
       ),
     );
-    if (result == null) return;
-    if (result == 'delete' && existing != null) {
-      setState(() => _flights.removeWhere((f) => f.id == existing.id));
-      await _persist();
-      return;
-    }
-    if (result is FlightEntry) {
-      setState(() {
-        if (existing != null) {
-          final idx = _flights.indexWhere((f) => f.id == existing.id);
-          _flights[idx] = result;
-        } else {
-          _flights.add(result.copyWith(sourceNumber: '${_nextFlightNumber()}'));
-        }
-        _rememberReferences(result);
-        _flights.sort((a, b) => b.date.compareTo(a.date));
-      });
-      await _persist();
-    }
+    if (result is! FlightEntry) return;
+    setState(() {
+      _flights.add(result.copyWith(sourceNumber: '${_nextFlightNumber()}'));
+      _rememberReferences(result);
+      _flights.sort((a, b) => b.date.compareTo(a.date));
+    });
+    await _persist();
+  }
+
+  Future<void> _openDetail(FlightEntry existing) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FlightDetailScreen(
+          entry: existing,
+          knownSites: _sites,
+          knownRuns: _runs,
+          knownWings: _wings,
+          onUpdated: (updated) async {
+            setState(() {
+              final idx = _flights.indexWhere((f) => f.id == updated.id);
+              if (idx >= 0) _flights[idx] = updated;
+              _rememberReferences(updated);
+              _flights.sort((a, b) => b.date.compareTo(a.date));
+            });
+            await _persist();
+          },
+          onDeleted: () async {
+            setState(() => _flights.removeWhere((f) => f.id == existing.id));
+            await _persist();
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _handleExport(String format) async {
@@ -480,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final f = filtered[index];
                       return _FlightRow(
                         entry: f,
-                        onTap: () => _openForm(existing: f),
+                        onTap: () => _openDetail(f),
                       );
                     },
                   ),
@@ -488,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _openForm(),
+        onPressed: _createFlight,
         child: const Icon(Icons.add),
       ),
     );
