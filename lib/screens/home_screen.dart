@@ -26,15 +26,26 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _filterSite;
   String? _filterRun;
   String? _filterWing;
+  DateTime? _filterDateFrom;
+  DateTime? _filterDateTo;
+  bool _filterHasComment = false;
 
   bool get _hasActiveFilters =>
-      _filterSite != null || _filterRun != null || _filterWing != null;
+      _filterSite != null ||
+      _filterRun != null ||
+      _filterWing != null ||
+      _filterDateFrom != null ||
+      _filterDateTo != null ||
+      _filterHasComment;
 
   List<FlightEntry> get _filteredFlights {
     return _flights.where((f) {
       if (_filterSite != null && f.site != _filterSite) return false;
       if (_filterRun != null && f.run != _filterRun) return false;
       if (_filterWing != null && f.wing != _filterWing) return false;
+      if (_filterDateFrom != null && f.date.isBefore(_filterDateFrom!)) return false;
+      if (_filterDateTo != null && f.date.isAfter(_filterDateTo!)) return false;
+      if (_filterHasComment && f.comment.trim().isEmpty) return false;
       return true;
     }).toList();
   }
@@ -155,10 +166,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String _formatDateRange() {
+    String fmt(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    if (_filterDateFrom != null && _filterDateTo != null) {
+      return '${fmt(_filterDateFrom!)} - ${fmt(_filterDateTo!)}';
+    }
+    if (_filterDateFrom != null) return 'depuis ${fmt(_filterDateFrom!)}';
+    return "jusqu'au ${fmt(_filterDateTo!)}";
+  }
+
   Future<void> _openFilterSheet() async {
     String? site = _filterSite;
     String? run = _filterRun;
     String? wing = _filterWing;
+    DateTime? dateFrom = _filterDateFrom;
+    DateTime? dateTo = _filterDateTo;
+    bool hasComment = _filterHasComment;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -198,7 +222,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   options: _wings,
                   onChanged: (v) => setModalState(() => wing = v),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _filterDateField(
+                        context: context,
+                        label: 'Du',
+                        value: dateFrom,
+                        onChanged: (v) => setModalState(() => dateFrom = v),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _filterDateField(
+                        context: context,
+                        label: 'Au',
+                        value: dateTo,
+                        onChanged: (v) => setModalState(() => dateTo = v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Avec commentaire uniquement'),
+                  value: hasComment,
+                  onChanged: (v) => setModalState(() => hasComment = v),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -207,6 +260,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           site = null;
                           run = null;
                           wing = null;
+                          dateFrom = null;
+                          dateTo = null;
+                          hasComment = false;
                         }),
                         child: const Text('Réinitialiser'),
                       ),
@@ -219,6 +275,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             _filterSite = site;
                             _filterRun = run;
                             _filterWing = wing;
+                            _filterDateFrom = dateFrom;
+                            _filterDateTo = dateTo;
+                            _filterHasComment = hasComment;
                           });
                           Navigator.of(context).pop();
                         },
@@ -232,6 +291,40 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         });
       },
+    );
+  }
+
+  Widget _filterDateField({
+    required BuildContext context,
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    final text = value == null
+        ? 'Toutes'
+        : '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now().add(const Duration(days: 1)),
+        );
+        if (picked != null) onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: value == null
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () => onChanged(null),
+                ),
+        ),
+        child: Text(text),
+      ),
     );
   }
 
@@ -334,6 +427,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     InputChip(
                       label: Text('Voile : $_filterWing'),
                       onDeleted: () => setState(() => _filterWing = null),
+                    ),
+                  if (_filterDateFrom != null || _filterDateTo != null)
+                    InputChip(
+                      label: Text('Date : ${_formatDateRange()}'),
+                      onDeleted: () => setState(() {
+                        _filterDateFrom = null;
+                        _filterDateTo = null;
+                      }),
+                    ),
+                  if (_filterHasComment)
+                    InputChip(
+                      label: const Text('Avec commentaire'),
+                      onDeleted: () => setState(() => _filterHasComment = false),
                     ),
                 ],
               ),
