@@ -561,9 +561,9 @@ class _FlightRow extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 40,
+                width: 56,
                 child: Text(
-                  entry.flightNumberLabel != null ? '#${entry.flightNumberLabel}' : '',
+                  entry.flightNumberLabel ?? '',
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall

@@ -103,7 +103,7 @@ void main() {
     // just the starting number; flightNumberLabel rebuilds the full range.
     final row2 = result[1];
     expect(row2.sourceNumber, '2');
-    expect(row2.flightNumberLabel, '2-3');
+    expect(row2.flightNumberLabel, '#2 - #3');
     expect(row2.count, 2);
     expect(row2.date, DateTime(2023, 5, 21));
 
@@ -118,7 +118,7 @@ void main() {
 
     // Mixed "meters/soaring" and pure duration values.
     final row170 = result.firstWhere((f) => f.sourceNumber == '170');
-    expect(row170.flightNumberLabel, '170-174');
+    expect(row170.flightNumberLabel, '#170 - #174');
     expect(row170.verticalOrDuration, '600/soaring');
     expect(row170.verticalMeters, 600);
 
