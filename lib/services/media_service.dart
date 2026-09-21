@@ -99,4 +99,29 @@ class MediaService {
   Future<List<MediaItem>> forFlight(String flightId) => _store.forFlight(flightId);
 
   Future<void> delete(String id) => _store.delete(id);
+
+  /// Generates a thumbnail for a video that doesn't have one yet (e.g. one
+  /// imported before thumbnail generation existed) and persists it in place.
+  Future<bool> backfillThumbnail(MediaItem item) async {
+    if (!item.isVideo || item.thumbnail != null) return false;
+    Uint8List? thumbnail;
+    try {
+      thumbnail = await generateVideoThumbnail(item.bytes, item.mimeType);
+    } catch (_) {
+      thumbnail = null;
+    }
+    if (thumbnail == null) return false;
+    await _store.add(MediaItem(
+      id: item.id,
+      flightId: item.flightId,
+      fileName: item.fileName,
+      mimeType: item.mimeType,
+      isVideo: item.isVideo,
+      bytes: item.bytes,
+      thumbnail: thumbnail,
+      capturedAt: item.capturedAt,
+      addedAt: item.addedAt,
+    ));
+    return true;
+  }
 }

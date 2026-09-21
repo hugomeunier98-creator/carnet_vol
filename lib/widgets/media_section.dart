@@ -34,6 +34,19 @@ class _MediaSectionState extends State<MediaSection> {
       _items = items;
       _loading = false;
     });
+    _backfillThumbnails(items);
+  }
+
+  Future<void> _backfillThumbnails(List<MediaItem> items) async {
+    final missing = items.where((i) => i.isVideo && i.thumbnail == null);
+    var changed = false;
+    for (final item in missing) {
+      if (await _mediaService.backfillThumbnail(item)) changed = true;
+    }
+    if (!changed || !mounted) return;
+    final refreshed = await _mediaService.forFlight(widget.flightId);
+    if (!mounted) return;
+    setState(() => _items = refreshed);
   }
 
   Future<void> _addMedia() async {
