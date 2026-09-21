@@ -18,6 +18,8 @@ class _MediaSectionState extends State<MediaSection> {
   List<MediaItem> _items = [];
   bool _loading = true;
   bool _adding = false;
+  int _addProgress = 0;
+  int _addTotal = 0;
 
   @override
   void initState() {
@@ -47,7 +49,11 @@ class _MediaSectionState extends State<MediaSection> {
     }
     if (files.isEmpty) return;
 
-    setState(() => _adding = true);
+    setState(() {
+      _adding = true;
+      _addProgress = 0;
+      _addTotal = files.length;
+    });
     var skipped = 0;
     for (final file in files) {
       try {
@@ -56,6 +62,7 @@ class _MediaSectionState extends State<MediaSection> {
       } catch (_) {
         skipped++;
       }
+      if (mounted) setState(() => _addProgress++);
     }
     await _load();
     if (mounted) {
@@ -117,10 +124,21 @@ class _MediaSectionState extends State<MediaSection> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.add_photo_alternate_outlined),
-              label: Text(_adding ? 'Ajout…' : 'Ajouter'),
+              label: Text(_adding ? 'Ajout $_addProgress/$_addTotal…' : 'Ajouter'),
             ),
           ],
         ),
+        if (_adding) ...[
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: _addTotal > 0 ? _addProgress / _addTotal : null,
+              minHeight: 4,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         if (_loading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),

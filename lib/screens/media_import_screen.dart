@@ -27,6 +27,8 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
   List<_PendingAssignment> _assignments = [];
   bool _busy = false;
   bool _importing = false;
+  int _progress = 0;
+  int _total = 0;
 
   bool _sameDate(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -44,7 +46,11 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
     }
     if (files.isEmpty) return;
 
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _progress = 0;
+      _total = files.length;
+    });
     final assignments = <_PendingAssignment>[];
     var skipped = 0;
     for (final file in files) {
@@ -62,6 +68,7 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
       } catch (_) {
         skipped++;
       }
+      if (mounted) setState(() => _progress++);
     }
     if (!mounted) return;
     setState(() {
@@ -82,12 +89,17 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
   }
 
   Future<void> _confirmImport() async {
-    setState(() => _importing = true);
+    final toImport = _assignments.where((a) => !a.skip && a.selected != null).toList();
+    setState(() {
+      _importing = true;
+      _progress = 0;
+      _total = toImport.length;
+    });
     var imported = 0;
-    for (final a in _assignments) {
-      if (a.skip || a.selected == null) continue;
+    for (final a in toImport) {
       await _mediaService.saveForFlight(a.pending, a.selected!.id);
       imported++;
+      if (mounted) setState(() => _progress++);
     }
     if (!mounted) return;
     Navigator.of(context).pop(imported);
@@ -123,8 +135,18 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.photo_library_outlined),
-                  label: Text(_busy ? 'Analyse…' : 'Choisir des photos/vidéos'),
+                  label: Text(_busy ? 'Analyse $_progress/$_total…' : 'Choisir des photos/vidéos'),
                 ),
+                if (_busy) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: _total > 0 ? _progress / _total : null,
+                      minHeight: 4,
+                    ),
+                  ),
+                ],
                 if (_assignments.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -193,15 +215,30 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
           if (_assignments.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
-              child: FilledButton.icon(
-                onPressed: (!readyToImport || _importing) ? null : _confirmImport,
-                icon: _importing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.check),
-                label: const Text('Importer'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_importing) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _total > 0 ? _progress / _total : null,
+                        minHeight: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  FilledButton.icon(
+                    onPressed: (!readyToImport || _importing) ? null : _confirmImport,
+                    icon: _importing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.check),
+                    label: Text(_importing ? 'Import $_progress/$_total…' : 'Importer'),
+                  ),
+                ],
               ),
             ),
         ],
