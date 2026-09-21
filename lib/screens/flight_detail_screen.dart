@@ -5,11 +5,13 @@ import 'package:latlong2/latlong.dart';
 import '../models/flight_entry.dart';
 import '../models/run_location.dart';
 import '../services/storage_service.dart';
+import '../utils/flight_numbering.dart';
 import '../widgets/media_section.dart';
 import 'flight_form_screen.dart';
 
 class FlightDetailScreen extends StatefulWidget {
   final FlightEntry entry;
+  final List<FlightEntry> allFlights;
   final List<String> knownSites;
   final List<String> knownRuns;
   final List<String> knownWings;
@@ -19,6 +21,7 @@ class FlightDetailScreen extends StatefulWidget {
   const FlightDetailScreen({
     super.key,
     required this.entry,
+    required this.allFlights,
     required this.knownSites,
     required this.knownRuns,
     required this.knownWings,
@@ -33,6 +36,7 @@ class FlightDetailScreen extends StatefulWidget {
 class _FlightDetailScreenState extends State<FlightDetailScreen> {
   final _storage = StorageService();
   late FlightEntry _entry;
+  late List<FlightEntry> _allFlights;
   RunLocation? _location;
   bool _loadingLocation = true;
 
@@ -40,8 +44,11 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
   void initState() {
     super.initState();
     _entry = widget.entry;
+    _allFlights = widget.allFlights;
     _loadLocation();
   }
+
+  String? get _numberLabel => computeFlightNumberLabels(_allFlights)[_entry.id];
 
   Future<void> _loadLocation() async {
     final all = await _storage.loadRunLocations();
@@ -70,7 +77,16 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
       return;
     }
     if (result is FlightEntry) {
-      setState(() => _entry = result);
+      setState(() {
+        _entry = result;
+        final idx = _allFlights.indexWhere((f) => f.id == result.id);
+        _allFlights = List<FlightEntry>.of(_allFlights);
+        if (idx >= 0) {
+          _allFlights[idx] = result;
+        } else {
+          _allFlights.add(result);
+        }
+      });
       widget.onUpdated(result);
       _loadLocation();
     }
@@ -118,7 +134,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _HeaderCard(entry: e, dateStr: dateStr),
+          _HeaderCard(entry: e, dateStr: dateStr, numberLabel: _numberLabel),
           const SizedBox(height: 20),
           Text('Commentaire', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -156,8 +172,9 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 class _HeaderCard extends StatelessWidget {
   final FlightEntry entry;
   final String dateStr;
+  final String? numberLabel;
 
-  const _HeaderCard({required this.entry, required this.dateStr});
+  const _HeaderCard({required this.entry, required this.dateStr, required this.numberLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -180,8 +197,8 @@ class _HeaderCard extends StatelessWidget {
                       .textTheme
                       .headlineSmall
                       ?.copyWith(color: onColor, fontWeight: FontWeight.bold)),
-              if (entry.flightNumberLabel != null)
-                Text(entry.flightNumberLabel!,
+              if (numberLabel != null)
+                Text(numberLabel!,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(color: onColor)),
             ],
           ),

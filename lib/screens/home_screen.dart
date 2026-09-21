@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/flight_entry.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
+import '../utils/flight_numbering.dart';
 import 'flight_detail_screen.dart';
 import 'flight_form_screen.dart';
 import 'media_import_screen.dart';
@@ -31,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _filterDateFrom;
   DateTime? _filterDateTo;
   bool _filterHasComment = false;
+
+  Map<String, String> get _numberLabels => computeFlightNumberLabels(_flights);
 
   bool get _hasActiveFilters =>
       _filterSite != null ||
@@ -80,17 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _storage.saveWings(_wings);
   }
 
-  int _nextFlightNumber() {
-    var maxEnd = 0;
-    for (final f in _flights) {
-      final start = int.tryParse(f.sourceNumber ?? '');
-      if (start == null) continue;
-      final end = start + f.count - 1;
-      if (end > maxEnd) maxEnd = end;
-    }
-    return maxEnd + 1;
-  }
-
   void _rememberReferences(FlightEntry entry) {
     if (entry.site.isNotEmpty && !_sites.contains(entry.site)) {
       _sites = [..._sites, entry.site]..sort();
@@ -115,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (result is! FlightEntry) return;
     setState(() {
-      _flights.add(result.copyWith(sourceNumber: '${_nextFlightNumber()}'));
+      _flights.add(result);
       _rememberReferences(result);
       _flights.sort((a, b) => b.date.compareTo(a.date));
     });
@@ -127,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (_) => FlightDetailScreen(
           entry: existing,
+          allFlights: _flights,
           knownSites: _sites,
           knownRuns: _runs,
           knownWings: _wings,
@@ -387,6 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final filtered = _filteredFlights;
+    final numberLabels = _numberLabels;
     final totalFlights = filtered.fold<int>(0, (sum, f) => sum + f.count);
     final siteCount = filtered.map((f) => f.site).toSet().length;
 
@@ -494,6 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final f = filtered[index];
                       return _FlightRow(
                         entry: f,
+                        numberLabel: numberLabels[f.id],
                         onTap: () => _openDetail(f),
                       );
                     },
@@ -564,9 +559,10 @@ class _EmptyState extends StatelessWidget {
 
 class _FlightRow extends StatelessWidget {
   final FlightEntry entry;
+  final String? numberLabel;
   final VoidCallback onTap;
 
-  const _FlightRow({required this.entry, required this.onTap});
+  const _FlightRow({required this.entry, required this.numberLabel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -591,7 +587,7 @@ class _FlightRow extends StatelessWidget {
               SizedBox(
                 width: 56,
                 child: Text(
-                  entry.flightNumberLabel ?? '',
+                  numberLabel ?? '',
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
