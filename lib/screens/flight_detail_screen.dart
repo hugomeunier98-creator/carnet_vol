@@ -6,6 +6,7 @@ import '../models/flight_entry.dart';
 import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
+import '../utils/latlng_parser.dart';
 import '../widgets/media_section.dart';
 import 'flight_form_screen.dart';
 
@@ -328,47 +329,62 @@ class _LocationEditDialog extends StatefulWidget {
 }
 
 class _LocationEditDialogState extends State<_LocationEditDialog> {
-  late final TextEditingController _takeoffLat;
-  late final TextEditingController _takeoffLng;
-  late final TextEditingController _landingLat;
-  late final TextEditingController _landingLng;
+  late final TextEditingController _takeoff;
+  late final TextEditingController _landing;
+  String? _takeoffError;
+  String? _landingError;
 
   @override
   void initState() {
     super.initState();
     final e = widget.existing;
-    _takeoffLat = TextEditingController(text: e?.takeoffLat?.toString() ?? '');
-    _takeoffLng = TextEditingController(text: e?.takeoffLng?.toString() ?? '');
-    _landingLat = TextEditingController(text: e?.landingLat?.toString() ?? '');
-    _landingLng = TextEditingController(text: e?.landingLng?.toString() ?? '');
+    _takeoff = TextEditingController(text: formatLatLng(e?.takeoffLat, e?.takeoffLng));
+    _landing = TextEditingController(text: formatLatLng(e?.landingLat, e?.landingLng));
   }
 
   @override
   void dispose() {
-    _takeoffLat.dispose();
-    _takeoffLng.dispose();
-    _landingLat.dispose();
-    _landingLng.dispose();
+    _takeoff.dispose();
+    _landing.dispose();
     super.dispose();
   }
 
   void _save() {
+    final takeoff = parseLatLng(_takeoff.text);
+    final landing = parseLatLng(_landing.text);
+    setState(() {
+      _takeoffError = _takeoff.text.trim().isNotEmpty && takeoff == null
+          ? 'Format attendu : lat, lon'
+          : null;
+      _landingError = _landing.text.trim().isNotEmpty && landing == null
+          ? 'Format attendu : lat, lon'
+          : null;
+    });
+    if (_takeoffError != null || _landingError != null) return;
+
     final result = RunLocation(
       site: widget.site,
       run: widget.run,
-      takeoffLat: double.tryParse(_takeoffLat.text.trim()),
-      takeoffLng: double.tryParse(_takeoffLng.text.trim()),
-      landingLat: double.tryParse(_landingLat.text.trim()),
-      landingLng: double.tryParse(_landingLng.text.trim()),
+      takeoffLat: takeoff?.$1,
+      takeoffLng: takeoff?.$2,
+      landingLat: landing?.$1,
+      landingLng: landing?.$2,
     );
     Navigator.of(context).pop(result);
   }
 
-  Widget _coordField(String label, TextEditingController controller) {
+  Widget _coordField({
+    required String label,
+    required TextEditingController controller,
+    required String? errorText,
+  }) {
     return TextField(
       controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-      decoration: InputDecoration(labelText: label, isDense: true),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: 'ex: 45.4489, 6.9622',
+        errorText: errorText,
+      ),
     );
   }
 
@@ -381,25 +397,13 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Décollage', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(child: _coordField('Latitude', _takeoffLat)),
-                const SizedBox(width: 8),
-                Expanded(child: _coordField('Longitude', _takeoffLng)),
-              ],
+            const Text(
+              'Colle une position au format "lat, lon" (ex: depuis Google Maps ou Apple Plans).',
             ),
             const SizedBox(height: 16),
-            Text('Atterrissage', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(child: _coordField('Latitude', _landingLat)),
-                const SizedBox(width: 8),
-                Expanded(child: _coordField('Longitude', _landingLng)),
-              ],
-            ),
+            _coordField(label: 'Décollage', controller: _takeoff, errorText: _takeoffError),
+            const SizedBox(height: 16),
+            _coordField(label: 'Atterrissage', controller: _landing, errorText: _landingError),
           ],
         ),
       ),
