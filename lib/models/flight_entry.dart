@@ -30,6 +30,15 @@ class FlightEntry {
     return null;
   }
 
+  /// Display label for the flight counter, e.g. "212" or "212-213" when this
+  /// entry groups several identical flights. [sourceNumber] always holds the
+  /// starting flight number as a plain integer string.
+  String? get flightNumberLabel {
+    final start = int.tryParse(sourceNumber ?? '');
+    if (start == null) return null;
+    return count > 1 ? '$start-${start + count - 1}' : '$start';
+  }
+
   FlightEntry copyWith({
     DateTime? date,
     String? site,

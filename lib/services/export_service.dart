@@ -14,9 +14,10 @@ class ExportService {
 
   String toCsv(List<FlightEntry> flights) {
     final buffer = StringBuffer();
-    buffer.writeln('date,site,run,denivele_duree,voile,nb_vols,commentaire');
+    buffer.writeln('numero,date,site,run,denivele_duree,voile,nb_vols,commentaire');
     for (final f in flights) {
       buffer.writeln([
+        f.sourceNumber ?? '',
         f.date.toIso8601String().split('T').first,
         _escape(f.site),
         _escape(f.run),
@@ -72,16 +73,17 @@ class ExportService {
     final result = <FlightEntry>[];
     for (final line in lines.skip(1)) {
       final fields = _splitCsvLine(line);
-      if (fields.length < 5) continue;
+      if (fields.length < 6) continue;
       result.add(FlightEntry(
         id: const Uuid().v4(),
-        date: DateTime.parse(fields[0]),
-        site: fields[1],
-        run: fields[2],
-        verticalOrDuration: fields[3],
-        wing: fields[4],
-        count: fields.length > 5 ? (int.tryParse(fields[5]) ?? 1) : 1,
-        comment: fields.length > 6 ? fields[6] : '',
+        sourceNumber: fields[0].isEmpty ? null : fields[0],
+        date: DateTime.parse(fields[1]),
+        site: fields[2],
+        run: fields[3],
+        verticalOrDuration: fields[4],
+        wing: fields[5],
+        count: fields.length > 6 ? (int.tryParse(fields[6]) ?? 1) : 1,
+        comment: fields.length > 7 ? fields[7] : '',
       ));
     }
     return result;
@@ -141,12 +143,14 @@ class ExportService {
       if (!numberPattern.hasMatch(noField)) continue; // header/title line
 
       var count = 1;
+      var startNumber = int.tryParse(noField);
       if (noField.contains('-')) {
         final parts = noField.split('-');
         final start = int.tryParse(parts[0]);
         final end = int.tryParse(parts[1]);
         if (start != null && end != null && end >= start) {
           count = end - start + 1;
+          startNumber = start;
         }
       }
 
@@ -171,7 +175,7 @@ class ExportService {
         verticalOrDuration: fields.length > 4 ? fields[4] : '',
         wing: fields.length > 5 ? fields[5] : '',
         count: count,
-        sourceNumber: noField,
+        sourceNumber: startNumber?.toString(),
       ));
     }
     return result;

@@ -70,7 +70,7 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
                               '${f.date.day.toString().padLeft(2, '0')}/${f.date.month.toString().padLeft(2, '0')}/${f.date.year}';
                           return ListTile(
                             dense: true,
-                            leading: Text(f.sourceNumber ?? '',
+                            leading: Text(f.flightNumberLabel ?? '',
                                 style: Theme.of(context).textTheme.bodySmall),
                             title: Text('$d · ${f.site}'
                                 '${f.run.isNotEmpty ? ' · ${f.run}' : ''}'),

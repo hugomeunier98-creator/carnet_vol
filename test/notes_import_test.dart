@@ -99,9 +99,11 @@ void main() {
     expect(result.first.run, 'l’Aigle');
     expect(result.first.wing, 'Swoop 16');
 
-    // Blank date row inherits the previous row's date.
+    // Blank date row inherits the previous row's date. sourceNumber stores
+    // just the starting number; flightNumberLabel rebuilds the full range.
     final row2 = result[1];
-    expect(row2.sourceNumber, '2-3');
+    expect(row2.sourceNumber, '2');
+    expect(row2.flightNumberLabel, '2-3');
     expect(row2.count, 2);
     expect(row2.date, DateTime(2023, 5, 21));
 
@@ -115,7 +117,8 @@ void main() {
     expect(row75.verticalOrDuration, '');
 
     // Mixed "meters/soaring" and pure duration values.
-    final row170 = result.firstWhere((f) => f.sourceNumber == '170-174');
+    final row170 = result.firstWhere((f) => f.sourceNumber == '170');
+    expect(row170.flightNumberLabel, '170-174');
     expect(row170.verticalOrDuration, '600/soaring');
     expect(row170.verticalMeters, 600);
 

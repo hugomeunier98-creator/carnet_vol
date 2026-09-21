@@ -78,6 +78,17 @@ class _HomeScreenState extends State<HomeScreen> {
     await _storage.saveWings(_wings);
   }
 
+  int _nextFlightNumber() {
+    var maxEnd = 0;
+    for (final f in _flights) {
+      final start = int.tryParse(f.sourceNumber ?? '');
+      if (start == null) continue;
+      final end = start + f.count - 1;
+      if (end > maxEnd) maxEnd = end;
+    }
+    return maxEnd + 1;
+  }
+
   void _rememberReferences(FlightEntry entry) {
     if (entry.site.isNotEmpty && !_sites.contains(entry.site)) {
       _sites = [..._sites, entry.site]..sort();
@@ -113,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final idx = _flights.indexWhere((f) => f.id == existing.id);
           _flights[idx] = result;
         } else {
-          _flights.add(result);
+          _flights.add(result.copyWith(sourceNumber: '${_nextFlightNumber()}'));
         }
         _rememberReferences(result);
         _flights.sort((a, b) => b.date.compareTo(a.date));
@@ -549,6 +560,19 @@ class _FlightRow extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
+              SizedBox(
+                width: 40,
+                child: Text(
+                  entry.flightNumberLabel != null ? '#${entry.flightNumberLabel}' : '',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.grey.shade500),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               SizedBox(
                 width: 64,
                 child: Text(dateStr,
