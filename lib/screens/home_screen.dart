@@ -4,6 +4,7 @@ import '../models/flight_entry.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
 import 'flight_form_screen.dart';
+import 'media_import_screen.dart';
 import 'notes_import_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -152,6 +153,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (imported == null) return;
     _mergeImported(imported);
+  }
+
+  Future<void> _handleImportMedia() async {
+    final count = await Navigator.of(context).push<int>(
+      MaterialPageRoute(builder: (_) => MediaImportScreen(flights: _flights)),
+    );
+    if (count == null || !mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('$count média(s) importé(s)')));
   }
 
   void _mergeImported(List<FlightEntry> imported) {
@@ -386,12 +396,16 @@ class _HomeScreenState extends State<HomeScreen> {
               if (value == 'export_json') _handleExport('json');
               if (value == 'import_file') _handleImportFile();
               if (value == 'import_notes') _handleImportFromNotes();
+              if (value == 'import_media') _handleImportMedia();
             },
             itemBuilder: (context) => const [
               PopupMenuItem(
                   value: 'import_notes',
                   child: Text('Importer depuis Notes (coller)')),
               PopupMenuItem(value: 'import_file', child: Text('Importer un fichier')),
+              PopupMenuItem(
+                  value: 'import_media',
+                  child: Text('Importer des médias (photos/vidéos)')),
               PopupMenuDivider(),
               PopupMenuItem(value: 'export_csv', child: Text('Exporter en CSV')),
               PopupMenuItem(value: 'export_json', child: Text('Exporter en JSON')),
@@ -544,7 +558,7 @@ class _FlightRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = entry.date;
     final dateStr =
-        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${(date.year % 100).toString().padLeft(2, '0')}';
     final location =
         entry.run.isNotEmpty ? '${entry.site} · ${entry.run}' : entry.site;
     final details = [
@@ -574,10 +588,12 @@ class _FlightRow extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 64,
+                width: 52,
                 child: Text(dateStr,
                     style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
               ),
               const SizedBox(width: 8),
               Expanded(

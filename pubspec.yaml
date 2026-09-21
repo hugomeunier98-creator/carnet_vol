@@ -39,7 +39,10 @@ dependencies:
   intl: ^0.20.3
   file_selector: ^1.1.0
   share_plus: ^13.3.0
-
+  image_picker: ^1.2.3
+  idb_shim: ^2.9.9
+  image: ^4.10.1
+  web: ^1.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

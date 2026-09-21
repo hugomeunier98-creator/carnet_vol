@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/flight_entry.dart';
+import '../widgets/media_section.dart';
 
 class FlightFormScreen extends StatefulWidget {
   final FlightEntry? existing;
@@ -210,6 +211,10 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 label: const Text('Supprimer', style: TextStyle(color: Colors.red)),
               ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 8),
+              MediaSection(flightId: widget.existing!.id),
             ],
           ],
         ),
