@@ -147,7 +147,20 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                   opacity: a.skip ? 0.5 : 1,
                   child: ListTile(
                     leading: a.pending.isVideo
-                        ? const Icon(Icons.videocam_outlined, size: 32)
+                        ? (a.pending.thumbnail != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.memory(a.pending.thumbnail!,
+                                        width: 44, height: 44, fit: BoxFit.cover),
+                                    const Icon(Icons.play_circle_outline,
+                                        color: Colors.white, size: 20),
+                                  ],
+                                ),
+                              )
+                            : const Icon(Icons.videocam_outlined, size: 32))
                         : ClipRRect(
                             borderRadius: BorderRadius.circular(6),
                             child: Image.memory(a.pending.bytes,

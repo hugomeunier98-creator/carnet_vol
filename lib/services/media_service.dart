@@ -7,6 +7,7 @@ import '../models/media_item.dart';
 import 'media_processor.dart';
 import 'media_store.dart';
 import 'mime_utils.dart';
+import 'video_thumbnail.dart';
 
 class MediaTooLargeException implements Exception {
   final int bytes;
@@ -20,6 +21,7 @@ class PendingMedia {
   final String mimeType;
   final bool isVideo;
   final Uint8List bytes;
+  final Uint8List? thumbnail;
   final DateTime? capturedAt;
 
   const PendingMedia({
@@ -27,6 +29,7 @@ class PendingMedia {
     required this.mimeType,
     required this.isVideo,
     required this.bytes,
+    this.thumbnail,
     this.capturedAt,
   });
 }
@@ -52,11 +55,18 @@ class MediaService {
 
     if (isVideo) {
       final capturedAt = await file.lastModified();
+      Uint8List? thumbnail;
+      try {
+        thumbnail = await generateVideoThumbnail(bytes, mimeType);
+      } catch (_) {
+        thumbnail = null;
+      }
       return PendingMedia(
         fileName: file.name,
         mimeType: mimeType,
         isVideo: true,
         bytes: bytes,
+        thumbnail: thumbnail,
         capturedAt: capturedAt,
       );
     }
@@ -80,6 +90,7 @@ class MediaService {
       mimeType: pending.mimeType,
       isVideo: pending.isVideo,
       bytes: pending.bytes,
+      thumbnail: pending.thumbnail,
       capturedAt: pending.capturedAt,
       addedAt: DateTime.now(),
     ));

@@ -172,11 +172,17 @@ class _MediaTile extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: item.isVideo
-                ? Container(
-                    color: Colors.black87,
-                    child: const Center(
-                      child: Icon(Icons.play_circle_outline, color: Colors.white, size: 32),
-                    ),
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      item.thumbnail != null
+                          ? Image.memory(item.thumbnail!, fit: BoxFit.cover)
+                          : Container(color: Colors.black87),
+                      const Center(
+                        child: Icon(Icons.play_circle_outline,
+                            color: Colors.white, size: 32),
+                      ),
+                    ],
                   )
                 : Image.memory(item.bytes, fit: BoxFit.cover),
           ),

@@ -7,6 +7,7 @@ class MediaItem {
   final String mimeType;
   final bool isVideo;
   final Uint8List bytes;
+  final Uint8List? thumbnail;
   final DateTime? capturedAt;
   final DateTime addedAt;
 
@@ -17,6 +18,7 @@ class MediaItem {
     required this.mimeType,
     required this.isVideo,
     required this.bytes,
+    this.thumbnail,
     this.capturedAt,
     required this.addedAt,
   });
@@ -28,6 +30,7 @@ class MediaItem {
         'mimeType': mimeType,
         'isVideo': isVideo,
         'bytes': bytes,
+        'thumbnail': thumbnail,
         'capturedAt': capturedAt?.toIso8601String(),
         'addedAt': addedAt.toIso8601String(),
       };
@@ -39,6 +42,7 @@ class MediaItem {
         mimeType: map['mimeType'] as String,
         isVideo: map['isVideo'] as bool,
         bytes: _asBytes(map['bytes']),
+        thumbnail: map['thumbnail'] == null ? null : _asBytes(map['thumbnail']),
         capturedAt: map['capturedAt'] != null
             ? DateTime.parse(map['capturedAt'] as String)
             : null,
