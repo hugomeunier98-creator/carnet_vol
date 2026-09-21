@@ -23,6 +23,22 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> _wings = [];
   bool _loading = true;
 
+  String? _filterSite;
+  String? _filterRun;
+  String? _filterWing;
+
+  bool get _hasActiveFilters =>
+      _filterSite != null || _filterRun != null || _filterWing != null;
+
+  List<FlightEntry> get _filteredFlights {
+    return _flights.where((f) {
+      if (_filterSite != null && f.site != _filterSite) return false;
+      if (_filterRun != null && f.run != _filterRun) return false;
+      if (_filterWing != null && f.wing != _filterWing) return false;
+      return true;
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -139,20 +155,126 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _openFilterSheet() async {
+    String? site = _filterSite;
+    String? run = _filterRun;
+    String? wing = _filterWing;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Filtrer les vols', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                _filterDropdown(
+                  label: 'Site',
+                  value: site,
+                  options: _sites,
+                  onChanged: (v) => setModalState(() => site = v),
+                ),
+                const SizedBox(height: 12),
+                _filterDropdown(
+                  label: 'Run',
+                  value: run,
+                  options: _runs,
+                  onChanged: (v) => setModalState(() => run = v),
+                ),
+                const SizedBox(height: 12),
+                _filterDropdown(
+                  label: 'Voile',
+                  value: wing,
+                  options: _wings,
+                  onChanged: (v) => setModalState(() => wing = v),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => setModalState(() {
+                          site = null;
+                          run = null;
+                          wing = null;
+                        }),
+                        child: const Text('Réinitialiser'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          setState(() {
+                            _filterSite = site;
+                            _filterRun = run;
+                            _filterWing = wing;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Appliquer'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Widget _filterDropdown({
+    required String label,
+    required String? value,
+    required List<String> options,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String?>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        const DropdownMenuItem<String?>(value: null, child: Text('Tous')),
+        ...options.map((o) => DropdownMenuItem<String?>(value: o, child: Text(o))),
+      ],
+      onChanged: onChanged,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final totalFlights = _flights.fold<int>(0, (sum, f) => sum + f.count);
-    final totalVertical = _flights.fold<int>(
-        0, (sum, f) => sum + (f.verticalMeters ?? 0) * f.count);
+    final filtered = _filteredFlights;
+    final totalFlights = filtered.fold<int>(0, (sum, f) => sum + f.count);
+    final siteCount = filtered.map((f) => f.site).toSet().length;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Carnet de vol'),
         actions: [
+          IconButton(
+            tooltip: 'Filtrer',
+            onPressed: _openFilterSheet,
+            icon: Badge(
+              isLabelVisible: _hasActiveFilters,
+              smallSize: 8,
+              child: Icon(_hasActiveFilters ? Icons.filter_alt : Icons.filter_alt_outlined),
+            ),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
@@ -187,19 +309,44 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _StatItem(label: 'Vols', value: '$totalFlights'),
-                _StatItem(label: 'Dénivelé cumulé', value: '${totalVertical}m'),
-                _StatItem(label: 'Sites', value: '${_sites.length}'),
+                _StatItem(label: 'Sites', value: '$siteCount'),
               ],
             ),
           ),
+          if (_hasActiveFilters)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  if (_filterSite != null)
+                    InputChip(
+                      label: Text('Site : $_filterSite'),
+                      onDeleted: () => setState(() => _filterSite = null),
+                    ),
+                  if (_filterRun != null)
+                    InputChip(
+                      label: Text('Run : $_filterRun'),
+                      onDeleted: () => setState(() => _filterRun = null),
+                    ),
+                  if (_filterWing != null)
+                    InputChip(
+                      label: Text('Voile : $_filterWing'),
+                      onDeleted: () => setState(() => _filterWing = null),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
           Expanded(
-            child: _flights.isEmpty
-                ? const _EmptyState()
+            child: filtered.isEmpty
+                ? _EmptyState(filtered: _hasActiveFilters)
                 : ListView.builder(
                     padding: const EdgeInsets.only(bottom: 80),
-                    itemCount: _flights.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final f = _flights[index];
+                      final f = filtered[index];
                       return _FlightRow(
                         entry: f,
                         onTap: () => _openForm(existing: f),
@@ -240,7 +387,9 @@ class _StatItem extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final bool filtered;
+
+  const _EmptyState({this.filtered = false});
 
   @override
   Widget build(BuildContext context) {
@@ -248,11 +397,20 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.paragliding_outlined, size: 64, color: Colors.grey.shade400),
+          Icon(
+            filtered ? Icons.filter_alt_off_outlined : Icons.paragliding_outlined,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
           const SizedBox(height: 12),
-          Text('Aucun vol enregistré', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            filtered ? 'Aucun vol ne correspond à ce filtre' : 'Aucun vol enregistré',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 4),
-          const Text('Appuie sur + pour ajouter ton premier vol'),
+          Text(filtered
+              ? 'Essaie de retirer un filtre'
+              : 'Appuie sur + pour ajouter ton premier vol'),
         ],
       ),
     );
