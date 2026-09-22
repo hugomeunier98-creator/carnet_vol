@@ -205,9 +205,6 @@ class _HeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(entry.wing, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: onColor)),
-          if (entry.verticalOrDuration.isNotEmpty)
-            Text(entry.verticalOrDuration,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: onColor)),
         ],
       ),
     );

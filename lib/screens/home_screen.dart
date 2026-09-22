@@ -571,10 +571,7 @@ class _FlightRow extends StatelessWidget {
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${(date.year % 100).toString().padLeft(2, '0')}';
     final location =
         entry.run.isNotEmpty ? '${entry.site} · ${entry.run}' : entry.site;
-    final details = [
-      entry.wing,
-      if (entry.verticalOrDuration.isNotEmpty) entry.verticalOrDuration,
-    ].join(' · ');
+    final details = entry.wing;
 
     return Card(
       child: InkWell(
