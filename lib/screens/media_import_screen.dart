@@ -168,26 +168,28 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                 return Opacity(
                   opacity: a.skip ? 0.5 : 1,
                   child: ListTile(
-                    leading: a.pending.isVideo
-                        ? (a.pending.thumbnail != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    Image.memory(a.pending.thumbnail!,
-                                        width: 44, height: 44, fit: BoxFit.cover),
-                                    const Icon(Icons.play_circle_outline,
-                                        color: Colors.white, size: 20),
-                                  ],
-                                ),
-                              )
-                            : const Icon(Icons.videocam_outlined, size: 32))
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.memory(a.pending.bytes,
-                                width: 44, height: 44, fit: BoxFit.cover),
-                          ),
+                    leading: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: a.pending.isVideo
+                          ? (a.pending.thumbnail != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image.memory(a.pending.thumbnail!, fit: BoxFit.cover),
+                                      const Icon(Icons.play_circle_outline,
+                                          color: Colors.white, size: 20),
+                                    ],
+                                  ),
+                                )
+                              : const Icon(Icons.videocam_outlined, size: 32))
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.memory(a.pending.bytes, fit: BoxFit.cover),
+                            ),
+                    ),
                     title: Text(a.pending.fileName, overflow: TextOverflow.ellipsis),
                     subtitle: DropdownButton<FlightEntry>(
                       isExpanded: true,
