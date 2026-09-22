@@ -8,6 +8,7 @@ class MediaItem {
   final bool isVideo;
   final Uint8List bytes;
   final Uint8List? thumbnail;
+  final String sourceHash;
   final DateTime? capturedAt;
   final DateTime addedAt;
 
@@ -19,6 +20,7 @@ class MediaItem {
     required this.isVideo,
     required this.bytes,
     this.thumbnail,
+    this.sourceHash = '',
     this.capturedAt,
     required this.addedAt,
   });
@@ -31,6 +33,7 @@ class MediaItem {
         'isVideo': isVideo,
         'bytes': bytes,
         'thumbnail': thumbnail,
+        'sourceHash': sourceHash,
         'capturedAt': capturedAt?.toIso8601String(),
         'addedAt': addedAt.toIso8601String(),
       };
@@ -43,6 +46,7 @@ class MediaItem {
         isVideo: map['isVideo'] as bool,
         bytes: _asBytes(map['bytes']),
         thumbnail: map['thumbnail'] == null ? null : _asBytes(map['thumbnail']),
+        sourceHash: (map['sourceHash'] as String?) ?? '',
         capturedAt: map['capturedAt'] != null
             ? DateTime.parse(map['capturedAt'] as String)
             : null,

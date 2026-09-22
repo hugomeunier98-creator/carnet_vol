@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
@@ -14,6 +15,10 @@ class MediaTooLargeException implements Exception {
   const MediaTooLargeException(this.bytes);
 }
 
+class MediaAlreadyImportedException implements Exception {
+  const MediaAlreadyImportedException();
+}
+
 /// A processed file (compressed if it's an image, date resolved) not yet
 /// attached to a flight.
 class PendingMedia {
@@ -22,6 +27,7 @@ class PendingMedia {
   final bool isVideo;
   final Uint8List bytes;
   final Uint8List? thumbnail;
+  final String sourceHash;
   final DateTime? capturedAt;
 
   const PendingMedia({
@@ -30,6 +36,7 @@ class PendingMedia {
     required this.isVideo,
     required this.bytes,
     this.thumbnail,
+    required this.sourceHash,
     this.capturedAt,
   });
 }
@@ -53,6 +60,11 @@ class MediaService {
       throw MediaTooLargeException(bytes.length);
     }
 
+    final hash = md5.convert(bytes).toString();
+    if (await _store.hashExists(hash)) {
+      throw const MediaAlreadyImportedException();
+    }
+
     if (isVideo) {
       final capturedAt = await file.lastModified();
       Uint8List? thumbnail;
@@ -67,6 +79,7 @@ class MediaService {
         isVideo: true,
         bytes: bytes,
         thumbnail: thumbnail,
+        sourceHash: hash,
         capturedAt: capturedAt,
       );
     }
@@ -78,6 +91,7 @@ class MediaService {
       mimeType: 'image/jpeg',
       isVideo: false,
       bytes: processed.bytes,
+      sourceHash: hash,
       capturedAt: processed.capturedAt,
     );
   }
@@ -91,6 +105,7 @@ class MediaService {
       isVideo: pending.isVideo,
       bytes: pending.bytes,
       thumbnail: pending.thumbnail,
+      sourceHash: pending.sourceHash,
       capturedAt: pending.capturedAt,
       addedAt: DateTime.now(),
     ));
@@ -119,6 +134,7 @@ class MediaService {
       isVideo: item.isVideo,
       bytes: item.bytes,
       thumbnail: thumbnail,
+      sourceHash: item.sourceHash,
       capturedAt: item.capturedAt,
       addedAt: item.addedAt,
     ));

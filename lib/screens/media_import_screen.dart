@@ -77,7 +77,9 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
     });
     if (skipped > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$skipped fichier(s) ignoré(s) (trop volumineux ou illisible)')),
+        SnackBar(
+            content:
+                Text('$skipped fichier(s) ignoré(s) (déjà importé, trop volumineux ou illisible)')),
       );
     }
   }
