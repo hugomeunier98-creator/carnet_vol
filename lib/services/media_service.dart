@@ -66,19 +66,16 @@ class MediaService {
     }
 
     if (isVideo) {
+      // The thumbnail isn't generated here: decoding a video frame is slow
+      // enough to noticeably stall a multi-file import. It's generated lazily
+      // instead, the first time the flight's media section is opened (see
+      // [backfillThumbnail]).
       final capturedAt = await file.lastModified();
-      Uint8List? thumbnail;
-      try {
-        thumbnail = await generateVideoThumbnail(bytes, mimeType);
-      } catch (_) {
-        thumbnail = null;
-      }
       return PendingMedia(
         fileName: file.name,
         mimeType: mimeType,
         isVideo: true,
         bytes: bytes,
-        thumbnail: thumbnail,
         sourceHash: hash,
         capturedAt: capturedAt,
       );

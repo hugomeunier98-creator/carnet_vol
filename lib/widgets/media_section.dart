@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/blob_opener.dart';
 import '../services/media_service.dart';
+import '../utils/progress_eta.dart';
 
 class MediaSection extends StatefulWidget {
   final String flightId;
@@ -20,6 +21,7 @@ class _MediaSectionState extends State<MediaSection> {
   bool _adding = false;
   int _addProgress = 0;
   int _addTotal = 0;
+  int? _addEtaSeconds;
 
   @override
   void initState() {
@@ -66,7 +68,9 @@ class _MediaSectionState extends State<MediaSection> {
       _adding = true;
       _addProgress = 0;
       _addTotal = files.length;
+      _addEtaSeconds = null;
     });
+    final eta = ProgressEta();
     var skipped = 0;
     for (final file in files) {
       try {
@@ -75,7 +79,16 @@ class _MediaSectionState extends State<MediaSection> {
       } catch (_) {
         skipped++;
       }
-      if (mounted) setState(() => _addProgress++);
+      if (mounted) {
+        setState(() {
+          _addProgress++;
+          _addEtaSeconds = eta.remainingSeconds(_addProgress, _addTotal);
+        });
+      }
+      // Yield a frame so the progress bar actually repaints between files -
+      // image/video processing runs synchronously and can otherwise freeze
+      // the UI for the whole batch.
+      await Future<void>.delayed(Duration.zero);
     }
     await _load();
     if (mounted) {
@@ -152,6 +165,12 @@ class _MediaSectionState extends State<MediaSection> {
               minHeight: 4,
             ),
           ),
+          if (formatEta(_addEtaSeconds).isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(formatEta(_addEtaSeconds),
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
           const SizedBox(height: 8),
         ],
         if (_loading)

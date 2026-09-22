@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
 import '../services/media_service.dart';
+import '../utils/progress_eta.dart';
 
 class MediaImportScreen extends StatefulWidget {
   final List<FlightEntry> flights;
@@ -29,6 +30,7 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
   bool _importing = false;
   int _progress = 0;
   int _total = 0;
+  int? _etaSeconds;
 
   bool _sameDate(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -50,7 +52,9 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
       _busy = true;
       _progress = 0;
       _total = files.length;
+      _etaSeconds = null;
     });
+    final eta = ProgressEta();
     final assignments = <_PendingAssignment>[];
     var skipped = 0;
     for (final file in files) {
@@ -68,7 +72,16 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
       } catch (_) {
         skipped++;
       }
-      if (mounted) setState(() => _progress++);
+      if (mounted) {
+        setState(() {
+          _progress++;
+          _etaSeconds = eta.remainingSeconds(_progress, _total);
+        });
+      }
+      // Yield a frame so the progress bar actually repaints between files -
+      // image/video processing runs synchronously and can otherwise freeze
+      // the UI for the whole batch.
+      await Future<void>.delayed(Duration.zero);
     }
     if (!mounted) return;
     setState(() {
@@ -96,12 +109,19 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
       _importing = true;
       _progress = 0;
       _total = toImport.length;
+      _etaSeconds = null;
     });
+    final eta = ProgressEta();
     var imported = 0;
     for (final a in toImport) {
       await _mediaService.saveForFlight(a.pending, a.selected!.id);
       imported++;
-      if (mounted) setState(() => _progress++);
+      if (mounted) {
+        setState(() {
+          _progress++;
+          _etaSeconds = eta.remainingSeconds(_progress, _total);
+        });
+      }
     }
     if (!mounted) return;
     Navigator.of(context).pop(imported);
@@ -148,6 +168,12 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                       minHeight: 4,
                     ),
                   ),
+                  if (formatEta(_etaSeconds).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(formatEta(_etaSeconds),
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ),
                 ],
                 if (_assignments.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -230,6 +256,12 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                         minHeight: 4,
                       ),
                     ),
+                    if (formatEta(_etaSeconds).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(formatEta(_etaSeconds),
+                            style: Theme.of(context).textTheme.bodySmall),
+                      ),
                     const SizedBox(height: 8),
                   ],
                   FilledButton.icon(
