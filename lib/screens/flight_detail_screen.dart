@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/flight_entry.dart';
 import '../models/run_location.dart';
@@ -217,6 +219,52 @@ class _LocationMap extends StatelessWidget {
 
   const _LocationMap({required this.location, required this.onEdit});
 
+  Future<void> _showCoordActions(
+    BuildContext context,
+    Offset globalPosition,
+    String label,
+    double lat,
+    double lng,
+  ) async {
+    final text = formatLatLng(lat, lng);
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        globalPosition & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
+      items: const [
+        PopupMenuItem(
+          value: 'copy',
+          child: Row(children: [
+            Icon(Icons.copy, size: 18),
+            SizedBox(width: 8),
+            Text('Copier les coordonnées'),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'share',
+          child: Row(children: [
+            Icon(Icons.ios_share, size: 18),
+            SizedBox(width: 8),
+            Text('Partager'),
+          ]),
+        ),
+      ],
+    );
+    if (!context.mounted || selected == null) return;
+    if (selected == 'copy') {
+      await Clipboard.setData(ClipboardData(text: text));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$label copié : $text')));
+      }
+    } else if (selected == 'share') {
+      await SharePlus.instance.share(ShareParams(text: text, subject: label));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = location;
@@ -277,14 +325,32 @@ class _LocationMap extends StatelessWidget {
                         point: LatLng(loc.takeoffLat!, loc.takeoffLng!),
                         width: 36,
                         height: 36,
-                        child: const Icon(Icons.flight_takeoff, color: Colors.green, size: 32),
+                        child: GestureDetector(
+                          onTapDown: (details) => _showCoordActions(
+                            context,
+                            details.globalPosition,
+                            'Décollage',
+                            loc.takeoffLat!,
+                            loc.takeoffLng!,
+                          ),
+                          child: const Icon(Icons.flight_takeoff, color: Colors.green, size: 32),
+                        ),
                       ),
                     if (loc.hasLanding)
                       Marker(
                         point: LatLng(loc.landingLat!, loc.landingLng!),
                         width: 36,
                         height: 36,
-                        child: const Icon(Icons.flight_land, color: Colors.redAccent, size: 32),
+                        child: GestureDetector(
+                          onTapDown: (details) => _showCoordActions(
+                            context,
+                            details.globalPosition,
+                            'Atterrissage',
+                            loc.landingLat!,
+                            loc.landingLng!,
+                          ),
+                          child: const Icon(Icons.flight_land, color: Colors.redAccent, size: 32),
+                        ),
                       ),
                   ],
                 ),
