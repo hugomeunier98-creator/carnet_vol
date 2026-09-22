@@ -89,14 +89,17 @@ class MediaService {
       mimeType: 'image/jpeg',
       isVideo: false,
       bytes: processed.bytes,
+      thumbnail: processed.thumbnail,
       sourceHash: hash,
       capturedAt: processed.capturedAt,
     );
   }
 
-  Future<void> saveForFlight(PendingMedia pending, String flightId) {
-    return _store.add(MediaItem(
-      id: _uuid.v4(),
+  /// Saves the media, returning the id of the stored record.
+  Future<String> saveForFlight(PendingMedia pending, String flightId) async {
+    final id = _uuid.v4();
+    await _store.add(MediaItem(
+      id: id,
       flightId: flightId,
       fileName: pending.fileName,
       mimeType: pending.mimeType,
@@ -107,13 +110,23 @@ class MediaService {
       capturedAt: pending.capturedAt,
       addedAt: DateTime.now(),
     ));
+    return id;
   }
+
+  Future<MediaItem?> getById(String id) => _store.getById(id);
 
   Future<List<MediaItem>> forFlight(String flightId) => _store.forFlight(flightId);
 
   Future<Set<String>> flightIdsWithMedia() => _store.flightIdsWithMedia();
 
   Future<void> delete(String id) => _store.delete(id);
+
+  Future<void> deleteAll(Iterable<String> ids) => _store.deleteAll(ids);
+
+  /// Repoints an already-saved media record at a different flight, without
+  /// the caller needing to hold its bytes in memory.
+  Future<void> reassignFlight(String mediaId, String newFlightId) =>
+      _store.reassignFlight(mediaId, newFlightId);
 
   /// Saves a copy of the media's bytes to the device (e.g. Files/Camera Roll
   /// on iOS), using its full original quality bytes as stored.

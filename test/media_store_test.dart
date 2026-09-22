@@ -30,4 +30,54 @@ void main() {
     final store = MediaStore();
     expect(await store.hashExists(''), false);
   });
+
+  test('reassignFlight updates only the flightId, preserving other fields', () async {
+    final store = MediaStore();
+    await store.add(MediaItem(
+      id: 'm1',
+      flightId: '__pending_import__',
+      fileName: 'clip.mp4',
+      mimeType: 'video/mp4',
+      isVideo: true,
+      bytes: Uint8List.fromList([9, 9, 9]),
+      sourceHash: 'h1',
+      addedAt: DateTime(2026, 2, 1),
+    ));
+
+    await store.reassignFlight('m1', 'flight-42');
+
+    final items = await store.forFlight('flight-42');
+    expect(items, hasLength(1));
+    expect(items.first.id, 'm1');
+    expect(items.first.fileName, 'clip.mp4');
+    expect(items.first.bytes, [9, 9, 9]);
+
+    expect(await store.forFlight('__pending_import__'), isEmpty);
+  });
+
+  test('getById returns null for a missing record', () async {
+    final store = MediaStore();
+    expect(await store.getById('does-not-exist'), null);
+  });
+
+  test('deleteAll removes multiple records at once', () async {
+    final store = MediaStore();
+    for (final id in ['a', 'b', 'c']) {
+      await store.add(MediaItem(
+        id: id,
+        flightId: 'flight-x',
+        fileName: '$id.jpg',
+        mimeType: 'image/jpeg',
+        isVideo: false,
+        bytes: Uint8List.fromList([1]),
+        sourceHash: 'hash-$id',
+        addedAt: DateTime(2026, 3, 1),
+      ));
+    }
+
+    await store.deleteAll(['a', 'c']);
+
+    final remaining = await store.forFlight('flight-x');
+    expect(remaining.map((m) => m.id), ['b']);
+  });
 }

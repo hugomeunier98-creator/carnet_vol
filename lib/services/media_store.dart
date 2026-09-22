@@ -56,6 +56,15 @@ class MediaStore {
     await txn.completed;
   }
 
+  Future<MediaItem?> getById(String id) async {
+    final db = await _open();
+    final txn = db.transaction(_storeName, idbModeReadOnly);
+    final raw = await txn.objectStore(_storeName).getObject(id);
+    await txn.completed;
+    if (raw is! Map) return null;
+    return MediaItem.fromMap(raw);
+  }
+
   Future<List<MediaItem>> forFlight(String flightId) async {
     final db = await _open();
     final txn = db.transaction(_storeName, idbModeReadOnly);
@@ -73,6 +82,33 @@ class MediaStore {
     final db = await _open();
     final txn = db.transaction(_storeName, idbModeReadWrite);
     await txn.objectStore(_storeName).delete(id);
+    await txn.completed;
+  }
+
+  /// Deletes several records at once (used to clean up media that was
+  /// eagerly saved during a bulk import the user then abandoned or skipped).
+  Future<void> deleteAll(Iterable<String> ids) async {
+    final db = await _open();
+    final txn = db.transaction(_storeName, idbModeReadWrite);
+    final store = txn.objectStore(_storeName);
+    for (final id in ids) {
+      await store.delete(id);
+    }
+    await txn.completed;
+  }
+
+  /// Updates only the flightId of an already-stored record, without the
+  /// caller needing to hold its (potentially large) bytes in memory.
+  Future<void> reassignFlight(String id, String newFlightId) async {
+    final db = await _open();
+    final txn = db.transaction(_storeName, idbModeReadWrite);
+    final store = txn.objectStore(_storeName);
+    final raw = await store.getObject(id);
+    if (raw is Map) {
+      final updated = Map<dynamic, dynamic>.from(raw);
+      updated['flightId'] = newFlightId;
+      await store.put(updated);
+    }
     await txn.completed;
   }
 

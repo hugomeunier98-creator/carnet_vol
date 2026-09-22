@@ -1,9 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
 import '../services/media_service.dart';
 import '../utils/progress_eta.dart';
 import '../widgets/video_preview_dialog.dart';
+
+/// Placeholder flightId for media that's been processed and saved during a
+/// bulk import but not yet confirmed against a real flight.
+const _pendingFlightId = '__pending_import__';
 
 class MediaImportScreen extends StatefulWidget {
   final List<FlightEntry> flights;
@@ -15,18 +21,30 @@ class MediaImportScreen extends StatefulWidget {
 }
 
 class _PendingAssignment {
-  final PendingMedia pending;
+  final String mediaId;
+  final String fileName;
+  final String mimeType;
+  final bool isVideo;
+  final Uint8List? thumbnail;
   List<FlightEntry> candidates;
   FlightEntry? selected;
   bool skip;
 
-  _PendingAssignment({required this.pending, required this.candidates, this.selected})
-      : skip = candidates.isEmpty;
+  _PendingAssignment({
+    required this.mediaId,
+    required this.fileName,
+    required this.mimeType,
+    required this.isVideo,
+    required this.thumbnail,
+    required this.candidates,
+    this.selected,
+  }) : skip = candidates.isEmpty;
 }
 
 class _MediaImportScreenState extends State<MediaImportScreen> {
   final _mediaService = MediaService();
   List<_PendingAssignment> _assignments = [];
+  final Set<String> _settledMediaIds = {};
   bool _busy = false;
   bool _importing = false;
   int _progress = 0;
@@ -35,6 +53,20 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
 
   bool _sameDate(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+
+  @override
+  void dispose() {
+    // The screen is being left without every item having been settled
+    // (reassigned to a real flight or discarded) by a completed import:
+    // clean up whatever was eagerly saved during the review phase so
+    // nothing lingers. Already-settled items are left untouched.
+    final unsettled =
+        _assignments.map((a) => a.mediaId).where((id) => !_settledMediaIds.contains(id));
+    if (unsettled.isNotEmpty) {
+      _mediaService.deleteAll(unsettled);
+    }
+    super.dispose();
+  }
 
   Future<void> _pickAndProcess() async {
     List<dynamic> files;
@@ -60,15 +92,29 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
     var skipped = 0;
     for (final file in files) {
       try {
+        // `pending` (and its bytes) only lives for this iteration: it's
+        // saved to IndexedDB immediately and then goes out of scope, so
+        // reviewing a big batch never holds more than one file's bytes in
+        // memory at a time (large videos previously stayed in memory for
+        // the whole batch, which could crash the tab on iOS).
         final pending = await _mediaService.process(file);
         final capturedAt = pending.capturedAt;
         final candidates = capturedAt == null
             ? <FlightEntry>[]
             : widget.flights.where((f) => _sameDate(f.date, capturedAt)).toList();
+        final autoFlight = candidates.length == 1 ? candidates.first : null;
+        final mediaId = await _mediaService.saveForFlight(
+          pending,
+          autoFlight?.id ?? _pendingFlightId,
+        );
         assignments.add(_PendingAssignment(
-          pending: pending,
+          mediaId: mediaId,
+          fileName: pending.fileName,
+          mimeType: pending.mimeType,
+          isVideo: pending.isVideo,
+          thumbnail: pending.thumbnail,
           candidates: candidates,
-          selected: candidates.length == 1 ? candidates.first : null,
+          selected: autoFlight,
         ));
       } catch (_) {
         skipped++;
@@ -86,7 +132,11 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
     }
     if (!mounted) return;
     setState(() {
-      _assignments = assignments;
+      // Append rather than replace: everything just processed is already
+      // saved, so a previous batch the user hasn't confirmed yet must stay
+      // reachable (otherwise it would leak as orphaned records once this
+      // screen closes - see dispose()).
+      _assignments = [..._assignments, ...assignments];
       _busy = false;
     });
     if (skipped > 0) {
@@ -98,9 +148,11 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
     }
   }
 
-  void _preview(BuildContext context, _PendingAssignment a) {
-    if (a.pending.isVideo) {
-      showVideoPreview(context, a.pending.bytes, a.pending.mimeType, a.pending.fileName);
+  Future<void> _preview(BuildContext context, _PendingAssignment a) async {
+    final item = await _mediaService.getById(a.mediaId);
+    if (item == null || !context.mounted) return;
+    if (item.isVideo) {
+      showVideoPreview(context, item.bytes, item.mimeType, item.fileName);
       return;
     }
     showDialog(
@@ -109,7 +161,7 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
         insetPadding: const EdgeInsets.all(12),
         child: Stack(
           children: [
-            InteractiveViewer(child: Image.memory(a.pending.bytes)),
+            InteractiveViewer(child: Image.memory(item.bytes)),
             Positioned(
               top: 4,
               right: 4,
@@ -134,18 +186,20 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
   }
 
   Future<void> _confirmImport() async {
-    final toImport = _assignments.where((a) => !a.skip && a.selected != null).toList();
+    final toKeep = _assignments.where((a) => !a.skip && a.selected != null).toList();
+    final toDiscard = _assignments.where((a) => a.skip || a.selected == null).toList();
     setState(() {
       _importing = true;
       _progress = 0;
-      _total = toImport.length;
+      _total = toKeep.length;
       _etaSeconds = null;
     });
     final eta = ProgressEta();
-    var imported = 0;
-    for (final a in toImport) {
-      await _mediaService.saveForFlight(a.pending, a.selected!.id);
-      imported++;
+    for (final a in toKeep) {
+      // Cheap: only updates the flightId field, doesn't move the bytes
+      // through Dart memory again.
+      await _mediaService.reassignFlight(a.mediaId, a.selected!.id);
+      _settledMediaIds.add(a.mediaId);
       if (mounted) {
         setState(() {
           _progress++;
@@ -153,8 +207,10 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
         });
       }
     }
+    await _mediaService.deleteAll(toDiscard.map((a) => a.mediaId));
+    _settledMediaIds.addAll(toDiscard.map((a) => a.mediaId));
     if (!mounted) return;
-    Navigator.of(context).pop(imported);
+    Navigator.of(context).pop(toKeep.length);
   }
 
   @override
@@ -231,7 +287,7 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                       child: SizedBox(
                         width: 44,
                         height: 44,
-                        child: a.pending.isVideo
+                        child: a.isVideo
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
                                 child: Container(
@@ -244,11 +300,13 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                               )
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
-                                child: Image.memory(a.pending.bytes, fit: BoxFit.cover),
+                                child: a.thumbnail != null
+                                    ? Image.memory(a.thumbnail!, fit: BoxFit.cover)
+                                    : const Icon(Icons.image_outlined, size: 32),
                               ),
                       ),
                     ),
-                    title: Text(a.pending.fileName, overflow: TextOverflow.ellipsis),
+                    title: Text(a.fileName, overflow: TextOverflow.ellipsis),
                     subtitle: DropdownButton<FlightEntry>(
                       isExpanded: true,
                       value: a.selected,
