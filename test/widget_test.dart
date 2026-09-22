@@ -10,8 +10,11 @@ void main() {
     SharedPreferences.setMockInitialValues({});
 
     await tester.pumpWidget(const CarnetVolApp());
-    await tester.pump();
-    await tester.pump();
+    // Loading now also awaits an IndexedDB round trip (media flags), which
+    // can take a few more microtask/event-loop turns than a couple of pumps.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
 
     expect(find.text('Carnet de vol'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);

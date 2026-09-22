@@ -75,4 +75,18 @@ class MediaStore {
     await txn.objectStore(_storeName).delete(id);
     await txn.completed;
   }
+
+  /// The set of flight ids that have at least one media item, without
+  /// loading the (potentially large) media records themselves.
+  Future<Set<String>> flightIdsWithMedia() async {
+    final db = await _open();
+    final txn = db.transaction(_storeName, idbModeReadOnly);
+    final index = txn.objectStore(_storeName).index(_flightIndexName);
+    final ids = <String>{};
+    await for (final cursor in index.openKeyCursor(autoAdvance: true)) {
+      ids.add(cursor.key as String);
+    }
+    await txn.completed;
+    return ids;
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
 import '../services/export_service.dart';
+import '../services/media_service.dart';
 import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
 import 'flight_detail_screen.dart';
@@ -20,11 +21,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _storage = StorageService();
   final _export = ExportService();
+  final _mediaService = MediaService();
 
   List<FlightEntry> _flights = [];
   List<String> _sites = [];
   List<String> _runs = [];
   List<String> _wings = [];
+  Set<String> _flightIdsWithMedia = {};
   bool _loading = true;
 
   String? _filterSite;
@@ -33,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _filterDateFrom;
   DateTime? _filterDateTo;
   bool _filterHasComment = false;
+  bool _filterHasMedia = false;
 
   Map<String, String> get _numberLabels => computeFlightNumberLabels(_flights);
 
@@ -42,7 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _filterWing != null ||
       _filterDateFrom != null ||
       _filterDateTo != null ||
-      _filterHasComment;
+      _filterHasComment ||
+      _filterHasMedia;
 
   List<FlightEntry> get _filteredFlights {
     return _flights.where((f) {
@@ -52,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_filterDateFrom != null && f.date.isBefore(_filterDateFrom!)) return false;
       if (_filterDateTo != null && f.date.isAfter(_filterDateTo!)) return false;
       if (_filterHasComment && f.comment.trim().isEmpty) return false;
+      if (_filterHasMedia && !_flightIdsWithMedia.contains(f.id)) return false;
       return true;
     }).toList();
   }
@@ -67,12 +73,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final sites = await _storage.loadSites();
     final runs = await _storage.loadRuns();
     final wings = await _storage.loadWings();
+    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
     flights.sort((a, b) => b.date.compareTo(a.date));
+    if (!mounted) return;
     setState(() {
       _flights = flights;
       _sites = sites;
       _runs = runs;
       _wings = wings;
+      _flightIdsWithMedia = flightIdsWithMedia;
       _loading = false;
     });
   }
@@ -140,6 +149,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
+    if (mounted) setState(() => _flightIdsWithMedia = flightIdsWithMedia);
   }
 
   Future<void> _handleExport(String format) async {
@@ -170,6 +181,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (count == null || !mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('$count média(s) importé(s)')));
+    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
+    if (mounted) setState(() => _flightIdsWithMedia = flightIdsWithMedia);
   }
 
   Future<void> _handleManageNames() async {
@@ -219,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime? dateFrom = _filterDateFrom;
     DateTime? dateTo = _filterDateTo;
     bool hasComment = _filterHasComment;
+    bool hasMedia = _filterHasMedia;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -287,6 +301,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   value: hasComment,
                   onChanged: (v) => setModalState(() => hasComment = v),
                 ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Avec média uniquement'),
+                  value: hasMedia,
+                  onChanged: (v) => setModalState(() => hasMedia = v),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -299,6 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           dateFrom = null;
                           dateTo = null;
                           hasComment = false;
+                          hasMedia = false;
                         }),
                         child: const Text('Réinitialiser'),
                       ),
@@ -314,6 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             _filterDateFrom = dateFrom;
                             _filterDateTo = dateTo;
                             _filterHasComment = hasComment;
+                            _filterHasMedia = hasMedia;
                           });
                           Navigator.of(context).pop();
                         },
@@ -486,6 +508,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     InputChip(
                       label: const Text('Avec commentaire'),
                       onDeleted: () => setState(() => _filterHasComment = false),
+                    ),
+                  if (_filterHasMedia)
+                    InputChip(
+                      label: const Text('Avec média'),
+                      onDeleted: () => setState(() => _filterHasMedia = false),
                     ),
                 ],
               ),

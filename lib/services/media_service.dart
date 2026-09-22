@@ -110,6 +110,8 @@ class MediaService {
 
   Future<List<MediaItem>> forFlight(String flightId) => _store.forFlight(flightId);
 
+  Future<Set<String>> flightIdsWithMedia() => _store.flightIdsWithMedia();
+
   Future<void> delete(String id) => _store.delete(id);
 
   /// Generates a thumbnail for a video that doesn't have one yet (e.g. one
