@@ -26,6 +26,7 @@ class _PendingAssignment {
   final String mimeType;
   final bool isVideo;
   final Uint8List? thumbnail;
+  final String savedFlightId;
   List<FlightEntry> candidates;
   FlightEntry? selected;
   bool skip;
@@ -36,6 +37,7 @@ class _PendingAssignment {
     required this.mimeType,
     required this.isVideo,
     required this.thumbnail,
+    required this.savedFlightId,
     required this.candidates,
     this.selected,
   }) : skip = candidates.isEmpty;
@@ -103,16 +105,15 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
             ? <FlightEntry>[]
             : widget.flights.where((f) => _sameDate(f.date, capturedAt)).toList();
         final autoFlight = candidates.length == 1 ? candidates.first : null;
-        final mediaId = await _mediaService.saveForFlight(
-          pending,
-          autoFlight?.id ?? _pendingFlightId,
-        );
+        final savedFlightId = autoFlight?.id ?? _pendingFlightId;
+        final mediaId = await _mediaService.saveForFlight(pending, savedFlightId);
         assignments.add(_PendingAssignment(
           mediaId: mediaId,
           fileName: pending.fileName,
           mimeType: pending.mimeType,
           isVideo: pending.isVideo,
           thumbnail: pending.thumbnail,
+          savedFlightId: savedFlightId,
           candidates: candidates,
           selected: autoFlight,
         ));
@@ -195,22 +196,40 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
       _etaSeconds = null;
     });
     final eta = ProgressEta();
+    var failed = 0;
     for (final a in toKeep) {
-      // Cheap: only updates the flightId field, doesn't move the bytes
-      // through Dart memory again.
-      await _mediaService.reassignFlight(a.mediaId, a.selected!.id);
-      _settledMediaIds.add(a.mediaId);
+      try {
+        // Already saved under the right flight (the common case: an
+        // auto-matched file the user didn't override) - nothing to do, and
+        // importantly no need to read/rewrite its full bytes again.
+        if (a.selected!.id != a.savedFlightId) {
+          await _mediaService.reassignFlight(a.mediaId, a.selected!.id);
+        }
+        _settledMediaIds.add(a.mediaId);
+      } catch (_) {
+        failed++;
+      }
       if (mounted) {
         setState(() {
           _progress++;
           _etaSeconds = eta.remainingSeconds(_progress, _total);
         });
       }
+      await Future<void>.delayed(Duration.zero);
     }
-    await _mediaService.deleteAll(toDiscard.map((a) => a.mediaId));
-    _settledMediaIds.addAll(toDiscard.map((a) => a.mediaId));
+    try {
+      await _mediaService.deleteAll(toDiscard.map((a) => a.mediaId));
+      _settledMediaIds.addAll(toDiscard.map((a) => a.mediaId));
+    } catch (_) {
+      // Leftover pending records will be cleaned up by dispose().
+    }
     if (!mounted) return;
-    Navigator.of(context).pop(toKeep.length);
+    if (failed > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("$failed média(s) n'ont pas pu être importés")),
+      );
+    }
+    Navigator.of(context).pop(toKeep.length - failed);
   }
 
   @override
