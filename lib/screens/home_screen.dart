@@ -6,6 +6,7 @@ import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
 import 'flight_detail_screen.dart';
 import 'flight_form_screen.dart';
+import 'manage_names_screen.dart';
 import 'media_import_screen.dart';
 import 'notes_import_screen.dart';
 
@@ -169,6 +170,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (count == null || !mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('$count média(s) importé(s)')));
+  }
+
+  Future<void> _handleManageNames() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ManageNamesScreen()),
+    );
+    await _load();
   }
 
   void _mergeImported(List<FlightEntry> imported) {
@@ -405,6 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (value == 'import_file') _handleImportFile();
               if (value == 'import_notes') _handleImportFromNotes();
               if (value == 'import_media') _handleImportMedia();
+              if (value == 'manage_names') _handleManageNames();
             },
             itemBuilder: (context) => const [
               PopupMenuItem(
@@ -417,6 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
               PopupMenuDivider(),
               PopupMenuItem(value: 'export_csv', child: Text('Exporter en CSV')),
               PopupMenuItem(value: 'export_json', child: Text('Exporter en JSON')),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                  value: 'manage_names',
+                  child: Text('Gérer les sites & runs (fusionner)')),
             ],
           ),
         ],
