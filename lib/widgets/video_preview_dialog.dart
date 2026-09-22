@@ -16,6 +16,12 @@ Future<void> showVideoPreview(BuildContext context, Uint8List bytes, String mime
   );
 }
 
+String _formatDuration(Duration d) {
+  final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
+
 class _VideoPlayerView extends StatefulWidget {
   final Uint8List bytes;
   final String mimeType;
@@ -68,14 +74,18 @@ class _VideoPlayerViewState extends State<_VideoPlayerView> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          if (controller != null && controller.value.isInitialized)
+          if (controller != null && controller.value.isInitialized) ...[
             GestureDetector(
-              onTap: () => setState(() {
-                controller.value.isPlaying ? controller.pause() : controller.play();
-              }),
+              onTap: () => controller.value.isPlaying ? controller.pause() : controller.play(),
               child: VideoPlayer(controller),
-            )
-          else if (_error != null)
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _Controls(controller: controller),
+            ),
+          ] else if (_error != null)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text('Impossible de lire la vidéo : $_error',
@@ -92,6 +102,59 @@ class _VideoPlayerViewState extends State<_VideoPlayerView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _Controls extends StatelessWidget {
+  final VideoPlayerController controller;
+
+  const _Controls({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(4, 16, 12, 4),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black87],
+        ),
+      ),
+      child: ValueListenableBuilder<VideoPlayerValue>(
+        valueListenable: controller,
+        builder: (context, value, child) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              VideoProgressIndicator(
+                controller,
+                allowScrubbing: true,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                colors: const VideoProgressColors(
+                  playedColor: Colors.white,
+                  bufferedColor: Colors.white38,
+                  backgroundColor: Colors.white24,
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white),
+                    onPressed: () => value.isPlaying ? controller.pause() : controller.play(),
+                  ),
+                  Text(
+                    '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
