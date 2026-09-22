@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
+import '../services/blob_opener.dart';
 import '../services/media_service.dart';
 import '../utils/progress_eta.dart';
 
@@ -95,6 +96,20 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                 Text('$skipped fichier(s) ignoré(s) (déjà importé, trop volumineux ou illisible)')),
       );
     }
+  }
+
+  void _preview(BuildContext context, _PendingAssignment a) {
+    if (a.pending.isVideo) {
+      openBytesInNewTab(a.pending.bytes, a.pending.mimeType);
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(12),
+        child: InteractiveViewer(child: Image.memory(a.pending.bytes)),
+      ),
+    );
   }
 
   String _flightLabel(FlightEntry f) {
@@ -196,27 +211,27 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
                 return Opacity(
                   opacity: a.skip ? 0.5 : 1,
                   child: ListTile(
-                    leading: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: a.pending.isVideo
-                          ? (a.pending.thumbnail != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image.memory(a.pending.thumbnail!, fit: BoxFit.cover),
-                                      const Icon(Icons.play_circle_outline,
-                                          color: Colors.white, size: 20),
-                                    ],
+                    leading: GestureDetector(
+                      onTap: () => _preview(context, a),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: a.pending.isVideo
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  color: Colors.black87,
+                                  child: const Center(
+                                    child: Icon(Icons.play_circle_outline,
+                                        color: Colors.white, size: 26),
                                   ),
-                                )
-                              : const Icon(Icons.videocam_outlined, size: 32))
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.memory(a.pending.bytes, fit: BoxFit.cover),
-                            ),
+                                ),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.memory(a.pending.bytes, fit: BoxFit.cover),
+                              ),
+                      ),
                     ),
                     title: Text(a.pending.fileName, overflow: TextOverflow.ellipsis),
                     subtitle: DropdownButton<FlightEntry>(
