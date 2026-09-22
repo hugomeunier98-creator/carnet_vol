@@ -107,7 +107,22 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
       context: context,
       builder: (context) => Dialog(
         insetPadding: const EdgeInsets.all(12),
-        child: InteractiveViewer(child: Image.memory(a.pending.bytes)),
+        child: Stack(
+          children: [
+            InteractiveViewer(child: Image.memory(a.pending.bytes)),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
