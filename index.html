@@ -31,6 +31,19 @@
 
   <title>Carnet de vol</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    This app no longer registers a service worker (updates propagate faster
+    without the offline app-shell cache). This cleans up any worker left
+    behind by an older build so it stops intercepting requests.
+  -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      });
+    }
+  </script>
 </head>
 <body>
   <!--
