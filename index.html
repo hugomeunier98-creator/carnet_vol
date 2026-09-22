@@ -33,6 +33,14 @@
   <link rel="manifest" href="manifest.json">
 
   <!--
+    Stops iOS Safari's own edge-swipe-back gesture from intercepting a
+    horizontal swipe before the app's own swipe-to-go-back gesture gets it.
+  -->
+  <style>
+    html, body { overscroll-behavior-x: none; }
+  </style>
+
+  <!--
     This app no longer registers a service worker (updates propagate faster
     without the offline app-shell cache). This cleans up any worker left
     behind by an older build so it stops intercepting requests.
