@@ -5,13 +5,24 @@ import 'package:video_player/video_player.dart';
 
 import '../services/blob_url.dart';
 
-Future<void> showVideoPreview(BuildContext context, Uint8List bytes, String mimeType) {
+Future<void> showVideoPreview(
+  BuildContext context,
+  Uint8List bytes,
+  String mimeType,
+  String fileName, {
+  VoidCallback? onDownload,
+}) {
   return showDialog(
     context: context,
     builder: (context) => Dialog(
       insetPadding: const EdgeInsets.all(12),
       backgroundColor: Colors.black,
-      child: _VideoPlayerView(bytes: bytes, mimeType: mimeType),
+      child: _VideoPlayerView(
+        bytes: bytes,
+        mimeType: mimeType,
+        fileName: fileName,
+        onDownload: onDownload,
+      ),
     ),
   );
 }
@@ -25,8 +36,15 @@ String _formatDuration(Duration d) {
 class _VideoPlayerView extends StatefulWidget {
   final Uint8List bytes;
   final String mimeType;
+  final String fileName;
+  final VoidCallback? onDownload;
 
-  const _VideoPlayerView({required this.bytes, required this.mimeType});
+  const _VideoPlayerView({
+    required this.bytes,
+    required this.mimeType,
+    required this.fileName,
+    this.onDownload,
+  });
 
   @override
   State<_VideoPlayerView> createState() => _VideoPlayerViewState();
@@ -96,9 +114,19 @@ class _VideoPlayerViewState extends State<_VideoPlayerView> {
           Positioned(
             top: 4,
             right: 4,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onDownload != null)
+                  IconButton(
+                    icon: const Icon(Icons.download, color: Colors.white),
+                    onPressed: widget.onDownload,
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
           ),
         ],

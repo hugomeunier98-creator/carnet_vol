@@ -121,16 +121,48 @@ class _MediaSectionState extends State<MediaSection> {
     await _load();
   }
 
+  Future<void> _downloadMedia(MediaItem item) async {
+    try {
+      await _mediaService.download(item.fileName, item.mimeType, item.bytes);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Échec du téléchargement : $e')));
+      }
+    }
+  }
+
   void _openViewer(MediaItem item) {
     if (item.isVideo) {
-      showVideoPreview(context, item.bytes, item.mimeType);
+      showVideoPreview(context, item.bytes, item.mimeType, item.fileName,
+          onDownload: () => _downloadMedia(item));
       return;
     }
     showDialog(
       context: context,
       builder: (context) => Dialog(
         insetPadding: const EdgeInsets.all(12),
-        child: InteractiveViewer(child: Image.memory(item.bytes)),
+        child: Stack(
+          children: [
+            InteractiveViewer(child: Image.memory(item.bytes)),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Row(
+                children: [
+                  _DialogIconButton(
+                    icon: Icons.download,
+                    onPressed: () => _downloadMedia(item),
+                  ),
+                  _DialogIconButton(
+                    icon: Icons.close,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -203,6 +235,25 @@ class _MediaSectionState extends State<MediaSection> {
             },
           ),
       ],
+    );
+  }
+}
+
+class _DialogIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _DialogIconButton({required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white),
+        onPressed: onPressed,
+      ),
     );
   }
 }

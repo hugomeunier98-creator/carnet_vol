@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
@@ -113,6 +114,15 @@ class MediaService {
   Future<Set<String>> flightIdsWithMedia() => _store.flightIdsWithMedia();
 
   Future<void> delete(String id) => _store.delete(id);
+
+  /// Saves a copy of the media's bytes to the device (e.g. Files/Camera Roll
+  /// on iOS), using its full original quality bytes as stored.
+  Future<void> download(String fileName, String mimeType, Uint8List bytes) async {
+    final location = await getSaveLocation(suggestedName: fileName);
+    if (location == null) return;
+    final file = XFile.fromData(bytes, mimeType: mimeType, name: fileName);
+    await file.saveTo(location.path);
+  }
 
   /// Generates a thumbnail for a video that doesn't have one yet (e.g. one
   /// imported before thumbnail generation existed) and persists it in place.

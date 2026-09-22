@@ -100,7 +100,7 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
 
   void _preview(BuildContext context, _PendingAssignment a) {
     if (a.pending.isVideo) {
-      showVideoPreview(context, a.pending.bytes, a.pending.mimeType);
+      showVideoPreview(context, a.pending.bytes, a.pending.mimeType, a.pending.fileName);
       return;
     }
     showDialog(
