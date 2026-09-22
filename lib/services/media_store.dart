@@ -65,15 +65,25 @@ class MediaStore {
     return MediaItem.fromMap(raw);
   }
 
+  /// Lists the media for a flight *without* their full bytes (only
+  /// thumbnails), so viewing a flight with many/large videos or photos
+  /// doesn't hold every file's full bytes in memory at once - just to show
+  /// a grid of small tiles. Call [getById] to load one item's full bytes
+  /// on demand (viewing/downloading it).
   Future<List<MediaItem>> forFlight(String flightId) async {
     final db = await _open();
     final txn = db.transaction(_storeName, idbModeReadOnly);
     final index = txn.objectStore(_storeName).index(_flightIndexName);
-    final rows = await index.getAll(flightId);
+    final items = <MediaItem>[];
+    await for (final cursor in index.openCursor(key: flightId, autoAdvance: true)) {
+      final value = cursor.value;
+      if (value is Map) {
+        final stripped = Map<dynamic, dynamic>.from(value);
+        stripped['bytes'] = null;
+        items.add(MediaItem.fromMap(stripped));
+      }
+    }
     await txn.completed;
-    final items = rows
-        .map((row) => MediaItem.fromMap(row as Map<dynamic, dynamic>))
-        .toList();
     items.sort((a, b) => a.addedAt.compareTo(b.addedAt));
     return items;
   }

@@ -50,9 +50,33 @@ void main() {
     expect(items, hasLength(1));
     expect(items.first.id, 'm1');
     expect(items.first.fileName, 'clip.mp4');
-    expect(items.first.bytes, [9, 9, 9]);
+
+    final full = await store.getById('m1');
+    expect(full?.bytes, [9, 9, 9]);
 
     expect(await store.forFlight('__pending_import__'), isEmpty);
+  });
+
+  test('forFlight omits full bytes (only thumbnails); getById loads them', () async {
+    final store = MediaStore();
+    await store.add(MediaItem(
+      id: 'p1',
+      flightId: 'flight-9',
+      fileName: 'photo.jpg',
+      mimeType: 'image/jpeg',
+      isVideo: false,
+      bytes: Uint8List.fromList(List.filled(1000, 7)),
+      thumbnail: Uint8List.fromList([1, 2, 3]),
+      sourceHash: 'h9',
+      addedAt: DateTime(2026, 4, 1),
+    ));
+
+    final listed = await store.forFlight('flight-9');
+    expect(listed.single.bytes, isEmpty);
+    expect(listed.single.thumbnail, [1, 2, 3]);
+
+    final full = await store.getById('p1');
+    expect(full?.bytes, hasLength(1000));
   });
 
   test('getById returns null for a missing record', () async {

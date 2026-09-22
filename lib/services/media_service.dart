@@ -137,15 +137,22 @@ class MediaService {
     await file.saveTo(location.path);
   }
 
-  /// Generates a thumbnail for a video that doesn't have one yet (e.g. one
-  /// imported before thumbnail generation existed) and persists it in place.
-  Future<bool> backfillThumbnail(MediaItem item) async {
-    if (!item.isVideo || item.thumbnail != null) return false;
+  /// Generates a thumbnail for a photo or video that doesn't have one yet
+  /// (e.g. one imported before thumbnail generation existed) and persists
+  /// it in place. Takes just the id and loads the full record itself, so
+  /// only one item's full bytes are ever in memory at a time.
+  Future<bool> backfillThumbnail(String mediaId) async {
+    final item = await _store.getById(mediaId);
+    if (item == null || item.thumbnail != null) return false;
     Uint8List? thumbnail;
-    try {
-      thumbnail = await generateVideoThumbnail(item.bytes, item.mimeType);
-    } catch (_) {
-      thumbnail = null;
+    if (item.isVideo) {
+      try {
+        thumbnail = await generateVideoThumbnail(item.bytes, item.mimeType);
+      } catch (_) {
+        thumbnail = null;
+      }
+    } else {
+      thumbnail = _processor.generateThumbnail(item.bytes);
     }
     if (thumbnail == null) return false;
     await _store.add(MediaItem(

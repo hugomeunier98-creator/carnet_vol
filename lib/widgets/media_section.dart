@@ -40,10 +40,10 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   Future<void> _backfillThumbnails(List<MediaItem> items) async {
-    final missing = items.where((i) => i.isVideo && i.thumbnail == null);
+    final missing = items.where((i) => i.thumbnail == null);
     var changed = false;
     for (final item in missing) {
-      if (await _mediaService.backfillThumbnail(item)) changed = true;
+      if (await _mediaService.backfillThumbnail(item.id)) changed = true;
     }
     if (!changed || !mounted) return;
     final refreshed = await _mediaService.forFlight(widget.flightId);
@@ -123,7 +123,9 @@ class _MediaSectionState extends State<MediaSection> {
 
   Future<void> _downloadMedia(MediaItem item) async {
     try {
-      await _mediaService.download(item.fileName, item.mimeType, item.bytes);
+      final full = await _mediaService.getById(item.id);
+      if (full == null) return;
+      await _mediaService.download(full.fileName, full.mimeType, full.bytes);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -132,19 +134,24 @@ class _MediaSectionState extends State<MediaSection> {
     }
   }
 
-  void _openViewer(MediaItem item) {
-    if (item.isVideo) {
-      showVideoPreview(context, item.bytes, item.mimeType, item.fileName,
+  Future<void> _openViewer(MediaItem item) async {
+    // The grid only ever holds thumbnails (see forFlight): load the full
+    // bytes for this one item on demand, right before displaying it.
+    final full = await _mediaService.getById(item.id);
+    if (full == null || !mounted) return;
+    if (full.isVideo) {
+      showVideoPreview(context, full.bytes, full.mimeType, full.fileName,
           onDownload: () => _downloadMedia(item));
       return;
     }
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (context) => Dialog(
         insetPadding: const EdgeInsets.all(12),
         child: Stack(
           children: [
-            InteractiveViewer(child: Image.memory(item.bytes)),
+            InteractiveViewer(child: Image.memory(full.bytes)),
             Positioned(
               top: 4,
               right: 4,
@@ -287,7 +294,12 @@ class _MediaTile extends StatelessWidget {
                       ),
                     ],
                   )
-                : Image.memory(item.bytes, fit: BoxFit.cover),
+                : (item.thumbnail != null
+                    ? Image.memory(item.thumbnail!, fit: BoxFit.cover)
+                    : Container(
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.image_outlined),
+                      )),
           ),
           Positioned(
             top: 2,

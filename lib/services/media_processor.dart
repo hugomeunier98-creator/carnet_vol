@@ -56,4 +56,21 @@ class MediaProcessor {
       return ProcessedMedia(bytes: original, capturedAt: capturedAt);
     }
   }
+
+  /// Generates just a small thumbnail from already-stored image bytes, for
+  /// backfilling photos saved before thumbnails existed.
+  Uint8List? generateThumbnail(Uint8List bytes) {
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+      final thumb = img.copyResize(
+        decoded,
+        width: decoded.width >= decoded.height ? _thumbnailDimension : null,
+        height: decoded.height > decoded.width ? _thumbnailDimension : null,
+      );
+      return Uint8List.fromList(img.encodeJpg(thumb, quality: _thumbnailQuality));
+    } catch (_) {
+      return null;
+    }
+  }
 }
