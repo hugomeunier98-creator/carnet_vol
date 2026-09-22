@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
-import '../services/blob_opener.dart';
 import '../services/media_service.dart';
 import '../utils/progress_eta.dart';
+import '../widgets/video_preview_dialog.dart';
 
 class MediaImportScreen extends StatefulWidget {
   final List<FlightEntry> flights;
@@ -100,7 +100,7 @@ class _MediaImportScreenState extends State<MediaImportScreen> {
 
   void _preview(BuildContext context, _PendingAssignment a) {
     if (a.pending.isVideo) {
-      openBytesInNewTab(a.pending.bytes, a.pending.mimeType);
+      showVideoPreview(context, a.pending.bytes, a.pending.mimeType);
       return;
     }
     showDialog(

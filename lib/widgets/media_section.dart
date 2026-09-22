@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
-import '../services/blob_opener.dart';
+import 'video_preview_dialog.dart';
 import '../services/media_service.dart';
 import '../utils/progress_eta.dart';
 
@@ -123,7 +123,7 @@ class _MediaSectionState extends State<MediaSection> {
 
   void _openViewer(MediaItem item) {
     if (item.isVideo) {
-      openBytesInNewTab(item.bytes, item.mimeType);
+      showVideoPreview(context, item.bytes, item.mimeType);
       return;
     }
     showDialog(
