@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player/video_player.dart' deferred as vp;
 
 import '../services/blob_url.dart';
 
@@ -51,7 +51,11 @@ class _VideoPlayerView extends StatefulWidget {
 }
 
 class _VideoPlayerViewState extends State<_VideoPlayerView> {
-  VideoPlayerController? _controller;
+  // vp.VideoPlayerController is a deferred type and can't appear in an
+  // explicit declaration - `dynamic` sidesteps that while still holding a
+  // real VideoPlayerController at runtime (the library is loaded before
+  // this is ever assigned).
+  dynamic _controller;
   String? _error;
 
   @override
@@ -62,8 +66,9 @@ class _VideoPlayerViewState extends State<_VideoPlayerView> {
 
   Future<void> _init() async {
     try {
+      await vp.loadLibrary();
       final url = createObjectUrl(widget.bytes, widget.mimeType);
-      final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+      final controller = vp.VideoPlayerController.networkUrl(Uri.parse(url));
       await controller.initialize();
       if (!mounted) {
         controller.dispose();
@@ -95,7 +100,7 @@ class _VideoPlayerViewState extends State<_VideoPlayerView> {
           if (controller != null && controller.value.isInitialized) ...[
             GestureDetector(
               onTap: () => controller.value.isPlaying ? controller.pause() : controller.play(),
-              child: VideoPlayer(controller),
+              child: vp.VideoPlayer(controller),
             ),
             Positioned(
               left: 0,
@@ -136,7 +141,7 @@ class _VideoPlayerViewState extends State<_VideoPlayerView> {
 }
 
 class _Controls extends StatelessWidget {
-  final VideoPlayerController controller;
+  final dynamic controller;
 
   const _Controls({required this.controller});
 
@@ -151,17 +156,17 @@ class _Controls extends StatelessWidget {
           colors: [Colors.transparent, Colors.black87],
         ),
       ),
-      child: ValueListenableBuilder<VideoPlayerValue>(
+      child: ValueListenableBuilder<dynamic>(
         valueListenable: controller,
         builder: (context, value, child) {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              VideoProgressIndicator(
+              vp.VideoProgressIndicator(
                 controller,
                 allowScrubbing: true,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                colors: const VideoProgressColors(
+                colors: vp.VideoProgressColors(
                   playedColor: Colors.white,
                   bufferedColor: Colors.white38,
                   backgroundColor: Colors.white24,

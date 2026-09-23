@@ -69,11 +69,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
-    final flights = await _storage.loadFlights();
-    final sites = await _storage.loadSites();
-    final runs = await _storage.loadRuns();
-    final wings = await _storage.loadWings();
-    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
+    // Run independent reads in parallel instead of one after another - the
+    // flights/sites/runs/wings reads don't depend on each other at all.
+    final results = await Future.wait([
+      _storage.loadFlights(),
+      _storage.loadSites(),
+      _storage.loadRuns(),
+      _storage.loadWings(),
+    ]);
+    final flights = results[0] as List<FlightEntry>;
+    final sites = results[1] as List<String>;
+    final runs = results[2] as List<String>;
+    final wings = results[3] as List<String>;
     flights.sort((a, b) => b.date.compareTo(a.date));
     if (!mounted) return;
     setState(() {
@@ -81,9 +88,18 @@ class _HomeScreenState extends State<HomeScreen> {
       _sites = sites;
       _runs = runs;
       _wings = wings;
-      _flightIdsWithMedia = flightIdsWithMedia;
       _loading = false;
     });
+    // Not needed for the first paint (only the "avec média" filter uses it),
+    // and it involves an IndexedDB open + full scan - let it happen after
+    // the list is already showing rather than delaying startup.
+    _loadMediaFlags();
+  }
+
+  Future<void> _loadMediaFlags() async {
+    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
+    if (!mounted) return;
+    setState(() => _flightIdsWithMedia = flightIdsWithMedia);
   }
 
   Future<void> _persist() async {
@@ -149,8 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
-    if (mounted) setState(() => _flightIdsWithMedia = flightIdsWithMedia);
+    _loadMediaFlags();
   }
 
   Future<void> _handleExport(String format) async {
@@ -181,8 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (count == null || !mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('$count média(s) importé(s)')));
-    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
-    if (mounted) setState(() => _flightIdsWithMedia = flightIdsWithMedia);
+    _loadMediaFlags();
   }
 
   Future<void> _handleManageNames() async {
