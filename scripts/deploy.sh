@@ -22,7 +22,7 @@ cd build/web
 sed -i "s/__BUILD_ID__/$build_id/" index.html
 
 # Files the app re-downloads before reloading into a new build.
-files=$(find . -path ./.git -prune -o -type f \
+files=$(find . ( -path ./.git -o -path ./canvaskit ) -prune -o -type f \
   \( -name '*.js' -o -name '*.json' -o -name '*.otf' -o -name '*.ttf' -o -name '*.bin' \) \
   -print | sed 's|^\./||' | grep -v '^build\.json$' | sort | sed 's/.*/"&"/' | paste -sd, -)
 printf '{"buildId":"%s","files":[%s]}\n' "$build_id" "$files" > build.json
