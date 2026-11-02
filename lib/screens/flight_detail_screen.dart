@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import '../widgets/discipline_icon.dart';
 import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
@@ -229,7 +230,7 @@ class _HeaderCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(entry.discipline.icon, size: 18, color: entry.discipline.color),
+              DisciplineIcon(entry.discipline, size: 18, color: entry.discipline.color),
               const SizedBox(width: 6),
               Text(entry.discipline.label,
                   style: Theme.of(context)

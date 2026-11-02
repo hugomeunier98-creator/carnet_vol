@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import '../widgets/discipline_icon.dart';
 
 class FlightFormScreen extends StatefulWidget {
   final FlightEntry? existing;
@@ -134,7 +135,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
             SegmentedButton<Discipline>(
               segments: [
                 for (final d in Discipline.values)
-                  ButtonSegment(value: d, label: Text(d.label), icon: Icon(d.icon)),
+                  ButtonSegment(value: d, label: Text(d.label), icon: DisciplineIcon(d, size: 18)),
               ],
               selected: {_discipline},
               onSelectionChanged: (s) => setState(() => _discipline = s.single),

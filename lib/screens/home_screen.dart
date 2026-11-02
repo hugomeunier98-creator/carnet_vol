@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import '../widgets/discipline_icon.dart';
 import '../services/app_update.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
@@ -211,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             for (final d in Discipline.values)
               ListTile(
-                leading: Icon(d.icon, color: d.color),
+                leading: DisciplineIcon(d, color: d.color),
                 title: Text(d.label),
                 onTap: () => Navigator.of(context).pop(d),
               ),
@@ -531,7 +532,9 @@ class _HomeScreenState extends State<HomeScreen>
             for (final d in _tabDisciplines)
               Tab(
                 height: 56,
-                icon: Icon(d?.icon ?? Icons.list_alt, size: 20),
+                icon: d == null
+                    ? const Icon(Icons.list_alt, size: 20)
+                    : DisciplineIcon(d, size: 20),
                 text: d?.label ?? 'Tout',
               ),
           ],
@@ -788,7 +791,7 @@ class _FlightRow extends StatelessWidget {
                 child: showDiscipline
                     ? Column(
                         children: [
-                          Icon(discipline.icon, size: 18, color: discipline.color),
+                          DisciplineIcon(discipline, size: 18, color: discipline.color),
                           Text(
                             numberLabel ?? '',
                             style: Theme.of(context)
