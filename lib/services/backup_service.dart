@@ -1,8 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:file_selector/file_selector.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../models/flight_entry.dart';
 import '../models/run_location.dart';
@@ -10,9 +6,10 @@ import '../utils/date_format.dart';
 import 'storage_service.dart';
 
 /// Everything the app stores, in one file: flights, GPS points of sites and
-/// runs, and the known site/run/wing names. On iPhone, a home-screen app
-/// keeps its data apart from Safari and loses it when its icon is removed,
-/// so this is what to save before reinstalling.
+/// runs, and the known site/run/wing names. This is what "Exporter en JSON"
+/// writes and what "Importer un fichier" reads back. On iPhone, a
+/// home-screen app keeps its data apart from Safari and loses it when its
+/// icon is removed, so it's also the way to carry data over a reinstall.
 class Backup {
   final List<FlightEntry> flights;
   final List<RunLocation> runLocations;
@@ -22,13 +19,17 @@ class Backup {
 
   const Backup({
     required this.flights,
-    required this.runLocations,
-    required this.sites,
-    required this.runs,
-    required this.wings,
+    this.runLocations = const [],
+    this.sites = const [],
+    this.runs = const [],
+    this.wings = const [],
   });
 
   static const _format = 'carnet_vol_backup';
+
+  /// e.g. "carnet_vol_2026-11-02.json"
+  static String fileName(DateTime now) =>
+      'carnet_vol_${formatNumericDate(now).split('/').reversed.join('-')}.json';
 
   String toJson() => const JsonEncoder.withIndent('  ').convert({
         'format': _format,
@@ -40,27 +41,29 @@ class Backup {
         'wings': wings,
       });
 
-  /// Null when [content] isn't a backup made by this app.
+  /// Null when [content] isn't a file written by [toJson] (e.g. an older
+  /// export holding just a list of flights).
   static Backup? tryParse(String content) {
+    final Object? json;
     try {
-      final json = jsonDecode(content);
-      if (json is! Map<String, dynamic> || json['format'] != _format) return null;
-      List<String> names(String key) =>
-          (json[key] as List<dynamic>? ?? []).cast<String>();
-      return Backup(
-        flights: (json['flights'] as List<dynamic>)
-            .map((e) => FlightEntry.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        runLocations: (json['runLocations'] as List<dynamic>? ?? [])
-            .map((e) => RunLocation.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        sites: names('sites'),
-        runs: names('runs'),
-        wings: names('wings'),
-      );
-    } catch (_) {
+      json = jsonDecode(content);
+    } on FormatException {
       return null;
     }
+    if (json is! Map<String, dynamic> || json['format'] != _format) return null;
+    final map = json;
+    List<String> names(String key) => (map[key] as List<dynamic>? ?? []).cast<String>();
+    return Backup(
+      flights: (map['flights'] as List<dynamic>)
+          .map((e) => FlightEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      runLocations: (map['runLocations'] as List<dynamic>? ?? [])
+          .map((e) => RunLocation.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      sites: names('sites'),
+      runs: names('runs'),
+      wings: names('wings'),
+    );
   }
 }
 
@@ -84,40 +87,19 @@ class BackupService {
     );
   }
 
-  /// Replaces everything stored with [backup].
-  Future<void> restore(Backup backup) async {
-    await _storage.saveFlights(backup.flights);
-    await _storage.saveRunLocations(backup.runLocations);
-    await _storage.saveSites(backup.sites);
-    await _storage.saveRuns(backup.runs);
-    await _storage.saveWings(backup.wings);
-  }
-
-  /// Offers the backup file through the share sheet (on iPhone: "Enregistrer
-  /// dans Fichiers", AirDrop, mail...), which works from a home-screen app
-  /// where plain downloads don't.
-  Future<void> share() async {
-    final backup = await load();
-    final now = DateTime.now();
-    final name = 'carnet_vol_sauvegarde_${formatNumericDate(now).split('/').reversed.join('-')}.json';
-    final file = XFile.fromData(
-      Uint8List.fromList(utf8.encode(backup.toJson())),
-      mimeType: 'application/json',
-      name: name,
-    );
-    await SharePlus.instance.share(ShareParams(files: [file], fileNameOverrides: [name]));
-  }
-
-  /// Lets the user pick a backup file; null if cancelled. Throws
-  /// [FormatException] when the file isn't a backup.
-  Future<Backup?> pick() async {
-    const jsonType = XTypeGroup(label: 'JSON', extensions: ['json']);
-    final file = await openFile(acceptedTypeGroups: [jsonType]);
-    if (file == null) return null;
-    final backup = Backup.tryParse(await file.readAsString());
-    if (backup == null) {
-      throw const FormatException("Ce fichier n'est pas une sauvegarde du carnet de vol.");
+  /// Adds imported GPS points; a point for a site/run already located
+  /// replaces it.
+  Future<void> mergeRunLocations(List<RunLocation> imported) async {
+    if (imported.isEmpty) return;
+    final all = await _storage.loadRunLocations();
+    for (final location in imported) {
+      final idx = all.indexWhere((l) => l.matches(location.site, location.run));
+      if (idx >= 0) {
+        all[idx] = location;
+      } else {
+        all.add(location);
+      }
     }
-    return backup;
+    await _storage.saveRunLocations(all);
   }
 }

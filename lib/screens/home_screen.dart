@@ -273,69 +273,26 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Exports the visible tab's flights ("Tout": every flight).
+  /// JSON: every piece of data (flights of all disciplines, GPS points,
+  /// names), which "Importer un fichier" reads back in full. CSV: the
+  /// visible tab's flights, for spreadsheets.
   Future<void> _handleExport(String format) async {
+    if (format == 'json') {
+      final backup = await _backup.load();
+      await _export.exportToFile(backup.toJson(), Backup.fileName(DateTime.now()),
+          mimeType: 'application/json');
+      return;
+    }
     final discipline = _tabDiscipline;
     final flights = discipline == null
         ? _flights
         : _flights.where((f) => f.discipline == discipline).toList();
-    final content =
-        format == 'csv' ? _export.toCsv(flights) : _export.toJson(flights);
     final suffix = discipline == null ? '' : '_${discipline.name}';
-    await _export.exportToFile(content, 'carnet_de_vol$suffix.$format');
+    await _export.exportToFile(_export.toCsv(flights), 'carnet_de_vol$suffix.csv',
+        mimeType: 'text/csv');
   }
 
   final _backup = BackupService();
-
-  Future<void> _handleBackup() async {
-    try {
-      await _backup.share();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sauvegarde impossible : $e')),
-      );
-    }
-  }
-
-  Future<void> _handleRestore() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final Backup? backup;
-    try {
-      backup = await _backup.pick();
-    } on FormatException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-      return;
-    }
-    if (backup == null || !mounted) return;
-    int countOf(List<FlightEntry> flights) => flights.fold<int>(0, (sum, f) => sum + f.count);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Restaurer la sauvegarde ?'),
-        content: Text(
-          'Les ${countOf(_flights)} vols actuels seront remplacés par les '
-          '${countOf(backup!.flights)} vols de la sauvegarde, avec ses '
-          'coordonnées GPS.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Restaurer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _backup.restore(backup);
-    await _load();
-    messenger.showSnackBar(const SnackBar(content: Text('Sauvegarde restaurée')));
-  }
 
   Future<void> _handleImportFile() async {
     final discipline = await _resolveDiscipline(
@@ -343,7 +300,14 @@ class _HomeScreenState extends State<HomeScreen>
     if (discipline == null) return;
     final imported = await _export.importFromFile(discipline);
     if (imported == null) return;
-    _mergeImported(imported);
+    await _backup.mergeRunLocations(imported.runLocations);
+    setState(() {
+      _sites = {..._sites, ...imported.sites}.toList()..sort();
+      _runs = {..._runs, ...imported.runs}.toList()..sort();
+      _wings = {..._wings, ...imported.wings}.toList()..sort();
+    });
+    _mergeImported(imported.flights,
+        gpsPoints: imported.runLocations.length);
   }
 
   Future<void> _handleImportFromNotes() async {
@@ -364,15 +328,18 @@ class _HomeScreenState extends State<HomeScreen>
     await _load();
   }
 
-  void _mergeImported(List<FlightEntry> imported) {
+  void _mergeImported(List<FlightEntry> imported, {int gpsPoints = 0}) {
     setState(() {
       for (final entry in imported) {
-        // Numbers are per discipline: parapente #12 is not speedflying #12.
-        final idx = entry.sourceNumber != null
-            ? _flights.indexWhere((f) =>
-                f.discipline == entry.discipline &&
-                f.sourceNumber == entry.sourceNumber)
-            : _flights.indexWhere((f) => f.id == entry.id);
+        // The same flight (exported then imported back), else the same
+        // number in the same discipline (a re-pasted Notes table: parapente
+        // #12 is not speedflying #12).
+        var idx = _flights.indexWhere((f) => f.id == entry.id);
+        if (idx < 0 && entry.sourceNumber != null) {
+          idx = _flights.indexWhere((f) =>
+              f.discipline == entry.discipline &&
+              f.sourceNumber == entry.sourceNumber);
+        }
         if (idx >= 0) {
           _flights[idx] = entry;
         } else {
@@ -385,7 +352,8 @@ class _HomeScreenState extends State<HomeScreen>
     _persist();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${imported.length} vol(s) importé(s)')),
+        SnackBar(content: Text('${imported.length} vol(s) importé(s)'
+            '${gpsPoints > 0 ? ', $gpsPoints point(s) GPS' : ''}')),
       );
     }
   }
@@ -647,8 +615,6 @@ class _HomeScreenState extends State<HomeScreen>
         if (value == 'export_csv') _handleExport('csv');
         if (value == 'export_json') _handleExport('json');
         if (value == 'import_file') _handleImportFile();
-        if (value == 'backup') _handleBackup();
-        if (value == 'restore') _handleRestore();
         if (value == 'import_notes') _handleImportFromNotes();
         if (value == 'manage_names') _handleManageNames();
         if (value == 'check_update') _handleCheckUpdate();
@@ -656,14 +622,11 @@ class _HomeScreenState extends State<HomeScreen>
       itemBuilder: (context) {
         final tab = _tabDiscipline?.label ?? 'tous les vols';
         return [
-          item('backup', Icons.cloud_upload_outlined, 'Sauvegarder toutes les données'),
-          item('restore', Icons.settings_backup_restore, 'Restaurer une sauvegarde'),
-          const PopupMenuDivider(),
           item('import_notes', Icons.content_paste, 'Importer depuis Notes'),
           item('import_file', Icons.file_open_outlined, 'Importer un fichier'),
           const PopupMenuDivider(),
           item('export_csv', Icons.table_chart_outlined, 'Exporter en CSV ($tab)'),
-          item('export_json', Icons.data_object, 'Exporter en JSON ($tab)'),
+          item('export_json', Icons.data_object, 'Exporter en JSON (toutes les données)'),
           const PopupMenuDivider(),
           item('manage_names', Icons.merge_type, 'Gérer les sites & runs'),
           item('check_update', Icons.system_update_outlined, 'Rechercher une mise à jour'),

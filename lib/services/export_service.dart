@@ -2,17 +2,14 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import 'backup_service.dart';
 
 class ExportService {
-  String toJson(List<FlightEntry> flights) {
-    final list = flights.map((f) => f.toJson()).toList();
-    return const JsonEncoder.withIndent('  ').convert(list);
-  }
-
   String toCsv(List<FlightEntry> flights) {
     final buffer = StringBuffer();
     buffer.writeln('numero,date,site,run,denivele_duree,voile,nb_vols,commentaire,discipline');
@@ -39,25 +36,42 @@ class ExportService {
     return value;
   }
 
-  Future<void> exportToFile(String content, String suggestedName) async {
-    final location = await getSaveLocation(suggestedName: suggestedName);
-    if (location == null) return;
-    final bytes = Uint8List.fromList(utf8.encode(content));
-    final file = XFile.fromData(bytes, mimeType: 'text/plain');
-    await file.saveTo(location.path);
+  /// Offers the file through the share sheet: on iPhone "Enregistrer dans
+  /// Fichiers", AirDrop, mail... (plain downloads don't work well from a
+  /// home-screen app). Falls back to a download where sharing files isn't
+  /// supported.
+  Future<void> exportToFile(String content, String fileName, {String mimeType = 'text/plain'}) async {
+    final file = XFile.fromData(
+      Uint8List.fromList(utf8.encode(content)),
+      mimeType: mimeType,
+      name: fileName,
+    );
+    try {
+      await SharePlus.instance.share(ShareParams(files: [file], fileNameOverrides: [fileName]));
+    } catch (_) {
+      final location = await getSaveLocation(suggestedName: fileName);
+      if (location == null) return;
+      await file.saveTo(location.path);
+    }
   }
 
-  /// Flights without a discipline in the file get [fallbackDiscipline].
-  Future<List<FlightEntry>?> importFromFile(Discipline fallbackDiscipline) async {
+  /// Reads a file picked by the user: a full JSON export (flights, GPS
+  /// points, names), an older JSON list of flights, or a CSV. Flights
+  /// without a discipline get [fallbackDiscipline]. Null if cancelled.
+  Future<Backup?> importFromFile(Discipline fallbackDiscipline) async {
     const jsonType = XTypeGroup(label: 'JSON', extensions: ['json']);
     const csvType = XTypeGroup(label: 'CSV', extensions: ['csv']);
     final file = await openFile(acceptedTypeGroups: [jsonType, csvType]);
     if (file == null) return null;
-    final content = await file.readAsString();
-    if (file.name.toLowerCase().endsWith('.csv')) {
-      return parseCsv(content, fallbackDiscipline);
+    return parseImportedFile(file.name, await file.readAsString(), fallbackDiscipline);
+  }
+
+  Backup parseImportedFile(String name, String content, Discipline fallbackDiscipline) {
+    if (name.toLowerCase().endsWith('.csv')) {
+      return Backup(flights: parseCsv(content, fallbackDiscipline));
     }
-    return _parseJson(content, fallbackDiscipline);
+    return Backup.tryParse(content) ??
+        Backup(flights: _parseJson(content, fallbackDiscipline));
   }
 
   List<FlightEntry> _parseJson(String content, Discipline fallbackDiscipline) {
