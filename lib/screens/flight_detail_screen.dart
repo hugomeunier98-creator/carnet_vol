@@ -8,6 +8,7 @@ import '../utils/latlng_parser.dart';
 import '../widgets/location_map_view.dart';
 import '../widgets/photos_section.dart';
 import 'flight_form_screen.dart';
+import 'location_picker_screen.dart';
 
 class FlightDetailScreen extends StatefulWidget {
   final FlightEntry entry;
@@ -92,13 +93,31 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     }
   }
 
+  /// Where the map picker starts for a run with no point yet: another run
+  /// of the same site if one is located, else the last located run.
+  LatLngPair? _fallbackCenter(List<RunLocation> all) {
+    LatLngPair? firstPoint(RunLocation l) => l.hasTakeoff
+        ? (l.takeoffLat!, l.takeoffLng!)
+        : l.hasLanding
+            ? (l.landingLat!, l.landingLng!)
+            : null;
+    final located = all.where((l) => l.hasAny).toList();
+    for (final l in located) {
+      if (l.site == _entry.site) return firstPoint(l);
+    }
+    return located.isEmpty ? null : firstPoint(located.last);
+  }
+
   Future<void> _editLocation() async {
+    final known = await _storage.loadRunLocations();
+    if (!mounted) return;
     final result = await showDialog<RunLocation>(
       context: context,
       builder: (context) => _LocationEditDialog(
         site: _entry.site,
         run: _entry.run,
         existing: _location,
+        fallbackCenter: _fallbackCenter(known),
       ),
     );
     if (result == null) return;
@@ -246,8 +265,14 @@ class _LocationEditDialog extends StatefulWidget {
   final String site;
   final String run;
   final RunLocation? existing;
+  final LatLngPair? fallbackCenter;
 
-  const _LocationEditDialog({required this.site, required this.run, this.existing});
+  const _LocationEditDialog({
+    required this.site,
+    required this.run,
+    this.existing,
+    this.fallbackCenter,
+  });
 
   @override
   State<_LocationEditDialog> createState() => _LocationEditDialogState();
@@ -298,6 +323,28 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
     Navigator.of(context).pop(result);
   }
 
+  Future<void> _pickOnMap() async {
+    final title = widget.run.isNotEmpty ? '${widget.site} · ${widget.run}' : widget.site;
+    final picked = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => LocationPickerScreen(
+          title: title,
+          takeoff: parseLatLng(_takeoff.text),
+          landing: parseLatLng(_landing.text),
+          fallbackCenter: widget.fallbackCenter,
+        ),
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _takeoff.text = formatLatLng(picked.takeoff?.$1, picked.takeoff?.$2);
+      _landing.text = formatLatLng(picked.landing?.$1, picked.landing?.$2);
+      _takeoffError = null;
+      _landingError = null;
+    });
+  }
+
   Widget _coordField({
     required String label,
     required TextEditingController controller,
@@ -322,8 +369,14 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            FilledButton.tonalIcon(
+              onPressed: _pickOnMap,
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Placer sur la carte'),
+            ),
+            const SizedBox(height: 12),
             const Text(
-              'Colle une position au format "lat, lon" (ex: depuis Google Maps ou Apple Plans).',
+              'Ou colle une position au format "lat, lon" (ex: depuis Google Maps ou Apple Plans).',
             ),
             const SizedBox(height: 16),
             _coordField(label: 'Décollage', controller: _takeoff, errorText: _takeoffError),
