@@ -4,6 +4,7 @@ import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
 import '../services/app_update.dart';
+import '../services/backup_service.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
 import '../utils/date_format.dart';
@@ -282,6 +283,58 @@ class _HomeScreenState extends State<HomeScreen>
         format == 'csv' ? _export.toCsv(flights) : _export.toJson(flights);
     final suffix = discipline == null ? '' : '_${discipline.name}';
     await _export.exportToFile(content, 'carnet_de_vol$suffix.$format');
+  }
+
+  final _backup = BackupService();
+
+  Future<void> _handleBackup() async {
+    try {
+      await _backup.share();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sauvegarde impossible : $e')),
+      );
+    }
+  }
+
+  Future<void> _handleRestore() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final Backup? backup;
+    try {
+      backup = await _backup.pick();
+    } on FormatException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    }
+    if (backup == null || !mounted) return;
+    int countOf(List<FlightEntry> flights) => flights.fold<int>(0, (sum, f) => sum + f.count);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restaurer la sauvegarde ?'),
+        content: Text(
+          'Les ${countOf(_flights)} vols actuels seront remplacés par les '
+          '${countOf(backup!.flights)} vols de la sauvegarde, avec ses '
+          'coordonnées GPS.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Restaurer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _backup.restore(backup);
+    await _load();
+    messenger.showSnackBar(const SnackBar(content: Text('Sauvegarde restaurée')));
   }
 
   Future<void> _handleImportFile() async {
@@ -594,6 +647,8 @@ class _HomeScreenState extends State<HomeScreen>
         if (value == 'export_csv') _handleExport('csv');
         if (value == 'export_json') _handleExport('json');
         if (value == 'import_file') _handleImportFile();
+        if (value == 'backup') _handleBackup();
+        if (value == 'restore') _handleRestore();
         if (value == 'import_notes') _handleImportFromNotes();
         if (value == 'manage_names') _handleManageNames();
         if (value == 'check_update') _handleCheckUpdate();
@@ -601,6 +656,9 @@ class _HomeScreenState extends State<HomeScreen>
       itemBuilder: (context) {
         final tab = _tabDiscipline?.label ?? 'tous les vols';
         return [
+          item('backup', Icons.cloud_upload_outlined, 'Sauvegarder toutes les données'),
+          item('restore', Icons.settings_backup_restore, 'Restaurer une sauvegarde'),
+          const PopupMenuDivider(),
           item('import_notes', Icons.content_paste, 'Importer depuis Notes'),
           item('import_file', Icons.file_open_outlined, 'Importer un fichier'),
           const PopupMenuDivider(),

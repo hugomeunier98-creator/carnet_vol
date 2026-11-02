@@ -127,7 +127,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer ce vol ?'),
+        title: const Text('Supprimer ce vol ?'),
         content: const Text('Cette action est définitive.'),
         actions: [
           TextButton(
