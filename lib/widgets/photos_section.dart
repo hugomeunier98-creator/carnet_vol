@@ -32,7 +32,7 @@ class PhotosSection extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => _copyDateAndOpenPhotos(context),
           icon: const Icon(Icons.photo_library_outlined),
-          label: Text('Copier ${PhotosLink.searchQuery(date)} et ouvrir Photos'),
+          label: const Text('Copier date et ouvrir Photos'),
         ),
       ],
     );
