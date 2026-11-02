@@ -180,11 +180,18 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _verticalController,
-              decoration: const InputDecoration(
-                labelText: 'Dénivelé / durée',
-                helperText: 'ex: 800, 1h, soaring, 600/soaring',
-                prefixIcon: Icon(Icons.trending_down),
-              ),
+              // Speedflying logs mostly vertical drop; parapente a duration.
+              decoration: _discipline == Discipline.parapente
+                  ? const InputDecoration(
+                      labelText: 'Durée',
+                      helperText: 'ex: 45min, 1h30',
+                      prefixIcon: Icon(Icons.timer_outlined),
+                    )
+                  : const InputDecoration(
+                      labelText: 'Dénivelé / durée',
+                      helperText: 'ex: 800, 1h, soaring, 600/soaring',
+                      prefixIcon: Icon(Icons.trending_down),
+                    ),
             ),
             const SizedBox(height: 16),
             InputDecorator(
