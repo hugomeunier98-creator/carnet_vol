@@ -529,12 +529,17 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 64,
+        backgroundColor: accent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(
           'Carnet de vol',
           style: Theme.of(context)
               .textTheme
               .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              ?.copyWith(
+                  color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: -0.5),
         ),
         actions: [
           IconButton(
@@ -720,14 +725,13 @@ class _DisciplineSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final selected = disciplines[controller.index];
     return Container(
       height: 44,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
+        color: Colors.black.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(14),
       ),
       child: TabBar(
@@ -735,15 +739,15 @@ class _DisciplineSwitcher extends StatelessWidget {
         dividerColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          color: cs.surfaceContainerLowest,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(11),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
           ],
         ),
         splashBorderRadius: BorderRadius.circular(11),
-        labelColor: selected?.on(context) ?? cs.primary,
-        unselectedLabelColor: cs.onSurfaceVariant,
+        labelColor: selected?.color ?? Discipline.allColor,
+        unselectedLabelColor: Colors.white.withValues(alpha: 0.9),
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         labelPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -779,7 +783,6 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = discipline?.color ?? Discipline.allColor;
-    final darker = Color.lerp(base, Colors.black, 0.25)!;
     int countOf(Iterable<FlightEntry> list) => list.fold<int>(0, (sum, f) => sum + f.count);
     final now = DateTime.now();
     final total = countOf(flights);
@@ -800,62 +803,57 @@ class _SummaryCard extends StatelessWidget {
             ('Dernier vol', last == null ? '–' : formatSince(last, now)),
           ];
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          colors: [base, darker],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text('$total',
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 40, fontWeight: FontWeight.w800, height: 1)),
-              const SizedBox(width: 8),
-              Text(total > 1 ? 'vols' : 'vol',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600)),
-              const Spacer(),
-              if (discipline != null)
-                DisciplineIcon(discipline!, size: 34, color: Colors.white.withValues(alpha: 0.35)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              for (final (label, value) in stats)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 2),
-                      Text(label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
-                    ],
+    final cs = Theme.of(context).colorScheme;
+    final accent = discipline?.on(context) ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? Color.lerp(base, Colors.white, 0.35)!
+            : base);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text('$total',
+                    style: TextStyle(
+                        color: accent, fontSize: 40, fontWeight: FontWeight.w800, height: 1)),
+                const SizedBox(width: 8),
+                Text(total > 1 ? 'vols' : 'vol',
+                    style: TextStyle(
+                        color: cs.onSurfaceVariant, fontSize: 17, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                if (discipline != null)
+                  DisciplineIcon(discipline!, size: 34, color: accent.withValues(alpha: 0.3)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                for (final (label, value) in stats)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 2),
+                        Text(label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

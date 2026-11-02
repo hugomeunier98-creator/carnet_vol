@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../models/discipline.dart';
+
 /// App-wide look: soft grouped background, borderless rounded surfaces,
 /// filled fields, large tap targets. Light and dark follow the phone.
 class AppTheme {
@@ -16,12 +18,21 @@ class AppTheme {
       colorScheme: cs,
       useMaterial3: true,
       scaffoldBackgroundColor: cs.surfaceContainerLow,
-      appBarTheme: AppBarTheme(
-        backgroundColor: cs.surfaceContainerLow,
+      // Coloured bars: the iPhone status bar sits on top of them with white
+      // text (translucent status bar, see web/index.html).
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Discipline.allColor,
+        foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         centerTitle: false,
         elevation: 0,
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
+        indicatorColor: Colors.white,
+        dividerColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
         elevation: 0,

@@ -102,8 +102,8 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     LatLngPair? firstPoint(RunLocation l) => l.hasTakeoff
         ? (l.takeoffLat!, l.takeoffLng!)
         : l.hasLanding
-            ? (l.landingLat!, l.landingLng!)
-            : null;
+        ? (l.landingLat!, l.landingLng!)
+        : null;
     final located = all.where((l) => l.hasAny).toList();
     for (final l in located) {
       if (l.site == _entry.site) return firstPoint(l);
@@ -143,6 +143,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: e.discipline.color,
         title: Text(_numberLabel != null ? 'Vol $_numberLabel' : 'Vol'),
         actions: [
           IconButton(
@@ -154,42 +155,57 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        padding: const EdgeInsets.only(bottom: 32),
         children: [
           _HeroCard(entry: e),
-          const SizedBox(height: 16),
-          _Section(
-            icon: Icons.chat_bubble_outline,
-            title: 'Commentaire',
-            child: InkWell(
-              onTap: _editFlight,
-              borderRadius: BorderRadius.circular(8),
-              child: Text(
-                e.comment.isNotEmpty ? e.comment : 'Aucun commentaire · toucher pour en ajouter',
-                style: e.comment.isEmpty
-                    ? TextStyle(color: cs.onSurfaceVariant, fontStyle: FontStyle.italic)
-                    : Theme.of(context).textTheme.bodyLarge,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Section(
+                  icon: Icons.chat_bubble_outline,
+                  title: 'Commentaire',
+                  child: InkWell(
+                    onTap: _editFlight,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Text(
+                      e.comment.isNotEmpty
+                          ? e.comment
+                          : 'Aucun commentaire · toucher pour en ajouter',
+                      style: e.comment.isEmpty
+                          ? TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            )
+                          : Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _Section(
+                  icon: Icons.place_outlined,
+                  title: 'Localisation',
+                  child: _loadingLocation
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : _location == null || !_location!.hasAny
+                      ? _NoLocation(onEdit: _editLocation)
+                      : LocationMapView(
+                          location: _location!,
+                          onEdit: _editLocation,
+                        ),
+                ),
+                const SizedBox(height: 12),
+                _Section(
+                  icon: Icons.photo_library_outlined,
+                  title: 'Photos & vidéos',
+                  child: PhotosSection(date: e.date),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          _Section(
-            icon: Icons.place_outlined,
-            title: 'Localisation',
-            child: _loadingLocation
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : _location == null || !_location!.hasAny
-                    ? _NoLocation(onEdit: _editLocation)
-                    : LocationMapView(location: _location!, onEdit: _editLocation),
-          ),
-          const SizedBox(height: 12),
-          _Section(
-            icon: Icons.photo_library_outlined,
-            title: 'Photos & vidéos',
-            child: PhotosSection(date: e.date),
           ),
         ],
       ),
@@ -210,61 +226,79 @@ class _HeroCard extends StatelessWidget {
     final white70 = Colors.white.withValues(alpha: 0.8);
 
     Widget pill(Widget icon, String text) => Container(
-          padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              icon,
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(text,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          icon,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
-            ],
+            ),
           ),
-        );
+        ],
+      ),
+    );
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 22),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
         gradient: LinearGradient(
           colors: [base, Color.lerp(base, Colors.black, 0.25)!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          pill(DisciplineIcon(entry.discipline, size: 16, color: Colors.white),
-              entry.discipline.label),
+          pill(
+            DisciplineIcon(entry.discipline, size: 16, color: Colors.white),
+            entry.discipline.label,
+          ),
           const SizedBox(height: 14),
-          Text(entry.site,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  height: 1.1,
-                  letterSpacing: -0.5)),
+          Text(
+            entry.site,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              letterSpacing: -0.5,
+            ),
+          ),
           if (entry.run.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(entry.run,
-                style: TextStyle(color: white70, fontSize: 17, fontWeight: FontWeight.w500)),
+            Text(
+              entry.run,
+              style: TextStyle(
+                color: white70,
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
           const SizedBox(height: 14),
           Row(
             children: [
               Icon(Icons.calendar_today_outlined, size: 16, color: white70),
               const SizedBox(width: 6),
-              Text(formatLongDate(entry.date),
-                  style: const TextStyle(color: Colors.white, fontSize: 15)),
+              Text(
+                formatLongDate(entry.date),
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -273,10 +307,15 @@ class _HeroCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               if (entry.wing.isNotEmpty)
-                pill(const Icon(Icons.paragliding, size: 16, color: Colors.white), entry.wing),
+                pill(
+                  const Icon(Icons.paragliding, size: 16, color: Colors.white),
+                  entry.wing,
+                ),
               if (entry.count > 1)
-                pill(const Icon(Icons.repeat, size: 16, color: Colors.white),
-                    '${entry.count} vols'),
+                pill(
+                  const Icon(Icons.repeat, size: 16, color: Colors.white),
+                  '${entry.count} vols',
+                ),
             ],
           ),
         ],
@@ -291,7 +330,11 @@ class _Section extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _Section({required this.icon, required this.title, required this.child});
+  const _Section({
+    required this.icon,
+    required this.title,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -306,11 +349,11 @@ class _Section extends StatelessWidget {
               children: [
                 Icon(icon, size: 18, color: cs.primary),
                 const SizedBox(width: 8),
-                Text(title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -333,8 +376,10 @@ class _NoLocation extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Aucune coordonnée GPS pour ce run.',
-            style: TextStyle(color: cs.onSurfaceVariant)),
+        Text(
+          'Aucune coordonnée GPS pour ce run.',
+          style: TextStyle(color: cs.onSurfaceVariant),
+        ),
         const SizedBox(height: 12),
         FilledButton.tonalIcon(
           onPressed: onEdit,
@@ -373,8 +418,12 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _takeoff = TextEditingController(text: formatLatLng(e?.takeoffLat, e?.takeoffLng));
-    _landing = TextEditingController(text: formatLatLng(e?.landingLat, e?.landingLng));
+    _takeoff = TextEditingController(
+      text: formatLatLng(e?.takeoffLat, e?.takeoffLng),
+    );
+    _landing = TextEditingController(
+      text: formatLatLng(e?.landingLat, e?.landingLng),
+    );
   }
 
   @override
@@ -409,7 +458,9 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
   }
 
   Future<void> _pickOnMap() async {
-    final title = widget.run.isNotEmpty ? '${widget.site} · ${widget.run}' : widget.site;
+    final title = widget.run.isNotEmpty
+        ? '${widget.site} · ${widget.run}'
+        : widget.site;
     final picked = await Navigator.of(context).push<PickedLocation>(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -448,7 +499,9 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.run.isNotEmpty ? '${widget.site} · ${widget.run}' : widget.site),
+      title: Text(
+        widget.run.isNotEmpty ? '${widget.site} · ${widget.run}' : widget.site,
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -464,14 +517,25 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
               'Ou colle une position au format "lat, lon" (ex: depuis Google Maps ou Apple Plans).',
             ),
             const SizedBox(height: 16),
-            _coordField(label: 'Décollage', controller: _takeoff, errorText: _takeoffError),
+            _coordField(
+              label: 'Décollage',
+              controller: _takeoff,
+              errorText: _takeoffError,
+            ),
             const SizedBox(height: 16),
-            _coordField(label: 'Atterrissage', controller: _landing, errorText: _landingError),
+            _coordField(
+              label: 'Atterrissage',
+              controller: _landing,
+              errorText: _landingError,
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
         FilledButton(onPressed: _save, child: const Text('Enregistrer')),
       ],
     );

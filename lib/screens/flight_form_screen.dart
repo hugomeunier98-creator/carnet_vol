@@ -214,13 +214,14 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     final accent = _discipline.color;
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: accent,
         title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol'),
         actions: [
           if (isEditing)
             IconButton(
               tooltip: 'Supprimer',
               onPressed: _confirmDelete,
-              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+              icon: const Icon(Icons.delete_outline),
             ),
           const SizedBox(width: 4),
         ],
@@ -228,7 +229,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
           children: [
             SegmentedButton<Discipline>(
               style: SegmentedButton.styleFrom(

@@ -212,9 +212,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ],
           ),
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: () => Navigator.of(context)
                 .pop<PickedLocation>((takeoff: _takeoff, landing: _landing)),
-            child: const Text('Valider'),
+            child: const Text('Valider', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
