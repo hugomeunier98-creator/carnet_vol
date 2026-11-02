@@ -5,6 +5,7 @@ import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
 import '../models/run_location.dart';
 import '../services/storage_service.dart';
+import '../utils/date_format.dart';
 import '../utils/flight_numbering.dart';
 import '../utils/latlng_parser.dart';
 import '../widgets/location_map_view.dart';
@@ -138,105 +139,144 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final e = _entry;
-    final dateStr =
-        '${e.date.day.toString().padLeft(2, '0')}/${e.date.month.toString().padLeft(2, '0')}/${e.date.year}';
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Détail du vol'),
+        title: Text(_numberLabel != null ? 'Vol $_numberLabel' : 'Vol'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Modifier',
             onPressed: _editFlight,
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
-          _HeaderCard(entry: e, dateStr: dateStr, numberLabel: _numberLabel),
-          const SizedBox(height: 20),
-          Text('Commentaire', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            e.comment.isNotEmpty ? e.comment : 'Pas de commentaire',
-            style: e.comment.isEmpty
-                ? Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(fontStyle: FontStyle.italic, color: Colors.grey.shade600)
-                : Theme.of(context).textTheme.bodyMedium,
+          _HeroCard(entry: e),
+          const SizedBox(height: 16),
+          _Section(
+            icon: Icons.chat_bubble_outline,
+            title: 'Commentaire',
+            child: InkWell(
+              onTap: _editFlight,
+              borderRadius: BorderRadius.circular(8),
+              child: Text(
+                e.comment.isNotEmpty ? e.comment : 'Aucun commentaire · toucher pour en ajouter',
+                style: e.comment.isEmpty
+                    ? TextStyle(color: cs.onSurfaceVariant, fontStyle: FontStyle.italic)
+                    : Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
           ),
-          const SizedBox(height: 24),
-          Text('Localisation', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(e.run.isNotEmpty ? '${e.site} · ${e.run}' : e.site),
           const SizedBox(height: 12),
-          if (_loadingLocation)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_location == null || !_location!.hasAny)
-            _NoLocationCard(onEdit: _editLocation)
-          else
-            LocationMapView(location: _location!, onEdit: _editLocation),
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 8),
-          PhotosSection(date: e.date),
+          _Section(
+            icon: Icons.place_outlined,
+            title: 'Localisation',
+            child: _loadingLocation
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _location == null || !_location!.hasAny
+                    ? _NoLocation(onEdit: _editLocation)
+                    : LocationMapView(location: _location!, onEdit: _editLocation),
+          ),
+          const SizedBox(height: 12),
+          _Section(
+            icon: Icons.photo_library_outlined,
+            title: 'Photos & vidéos',
+            child: PhotosSection(date: e.date),
+          ),
         ],
       ),
     );
   }
 }
 
-class _HeaderCard extends StatelessWidget {
+/// Top of the flight page: where, when and with what, on the discipline's
+/// colour.
+class _HeroCard extends StatelessWidget {
   final FlightEntry entry;
-  final String dateStr;
-  final String? numberLabel;
 
-  const _HeaderCard({required this.entry, required this.dateStr, required this.numberLabel});
+  const _HeroCard({required this.entry});
 
   @override
   Widget build(BuildContext context) {
-    final onColor = Theme.of(context).colorScheme.onPrimaryContainer;
+    final base = entry.discipline.color;
+    final white70 = Colors.white.withValues(alpha: 0.8);
+
+    Widget pill(Widget icon, String text) => Container(
+          padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              icon,
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(text,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        );
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          colors: [base, Color.lerp(base, Colors.black, 0.25)!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          pill(DisciplineIcon(entry.discipline, size: 16, color: Colors.white),
+              entry.discipline.label),
+          const SizedBox(height: 14),
+          Text(entry.site,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                  letterSpacing: -0.5)),
+          if (entry.run.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(entry.run,
+                style: TextStyle(color: white70, fontSize: 17, fontWeight: FontWeight.w500)),
+          ],
+          const SizedBox(height: 14),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(dateStr,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(color: onColor, fontWeight: FontWeight.bold)),
-              if (numberLabel != null)
-                Text(numberLabel!,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: onColor)),
+              Icon(Icons.calendar_today_outlined, size: 16, color: white70),
+              const SizedBox(width: 6),
+              Text(formatLongDate(entry.date),
+                  style: const TextStyle(color: Colors.white, fontSize: 15)),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(entry.wing, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: onColor)),
-          const SizedBox(height: 8),
-          Row(
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              DisciplineIcon(entry.discipline, size: 18, color: entry.discipline.color),
-              const SizedBox(width: 6),
-              Text(entry.discipline.label,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelLarge
-                      ?.copyWith(color: entry.discipline.color, fontWeight: FontWeight.w600)),
+              if (entry.wing.isNotEmpty)
+                pill(const Icon(Icons.paragliding, size: 16, color: Colors.white), entry.wing),
+              if (entry.count > 1)
+                pill(const Icon(Icons.repeat, size: 16, color: Colors.white),
+                    '${entry.count} vols'),
             ],
           ),
         ],
@@ -245,32 +285,63 @@ class _HeaderCard extends StatelessWidget {
   }
 }
 
-class _NoLocationCard extends StatelessWidget {
-  final VoidCallback onEdit;
+/// A titled card grouping one aspect of the flight.
+class _Section extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Widget child;
 
-  const _NoLocationCard({required this.onEdit});
+  const _Section({required this.icon, required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: cs.primary),
+                const SizedBox(width: 8),
+                Text(title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
       ),
-      child: Column(
-        children: [
-          Icon(Icons.map_outlined, size: 32, color: Colors.grey.shade400),
-          const SizedBox(height: 8),
-          const Text('Aucune coordonnée GPS pour ce run'),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: onEdit,
-            icon: const Icon(Icons.add_location_alt_outlined),
-            label: const Text('Ajouter les coordonnées GPS'),
-          ),
-        ],
-      ),
+    );
+  }
+}
+
+class _NoLocation extends StatelessWidget {
+  final VoidCallback onEdit;
+
+  const _NoLocation({required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Aucune coordonnée GPS pour ce run.',
+            style: TextStyle(color: cs.onSurfaceVariant)),
+        const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.add_location_alt_outlined),
+          label: const Text('Ajouter le décollage et l\'atterrissage'),
+        ),
+      ],
     );
   }
 }

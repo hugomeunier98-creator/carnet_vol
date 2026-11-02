@@ -6,6 +6,7 @@ import '../widgets/discipline_icon.dart';
 import '../services/app_update.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
+import '../utils/date_format.dart';
 import '../utils/flight_numbering.dart';
 import 'flight_detail_screen.dart';
 import 'flight_form_screen.dart';
@@ -337,8 +338,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   String _formatDateRange() {
-    String fmt(DateTime d) =>
-        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    String fmt(DateTime d) => formatNumericDate(d);
     if (_filterDateFrom != null && _filterDateTo != null) {
       return '${fmt(_filterDateFrom!)} - ${fmt(_filterDateTo!)}';
     }
@@ -363,14 +363,18 @@ class _HomeScreenState extends State<HomeScreen>
             padding: EdgeInsets.only(
               left: 16,
               right: 16,
-              top: 16,
+              top: 0,
               bottom: MediaQuery.of(context).viewInsets.bottom + 16,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Filtrer les vols', style: Theme.of(context).textTheme.titleLarge),
+                Text('Filtrer les vols',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
                 _filterDropdown(
                   label: 'Site',
@@ -470,9 +474,7 @@ class _HomeScreenState extends State<HomeScreen>
     required DateTime? value,
     required ValueChanged<DateTime?> onChanged,
   }) {
-    final text = value == null
-        ? 'Toutes'
-        : '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+    final text = value == null ? 'Toutes' : formatNumericDate(value);
     return InkWell(
       onTap: () async {
         final picked = await showDatePicker(
@@ -522,22 +524,17 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     final numberLabels = _numberLabels;
+    final accent = _tabDiscipline?.color ?? Discipline.allColor;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Carnet de vol'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            for (final d in _tabDisciplines)
-              Tab(
-                height: 56,
-                icon: d == null
-                    ? const Icon(Icons.list_alt, size: 20)
-                    : DisciplineIcon(d, size: 20),
-                text: d?.label ?? 'Tout',
-              ),
-          ],
+        toolbarHeight: 64,
+        title: Text(
+          'Carnet de vol',
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
         ),
         actions: [
           IconButton(
@@ -549,41 +546,16 @@ class _HomeScreenState extends State<HomeScreen>
               child: Icon(_hasActiveFilters ? Icons.filter_alt : Icons.filter_alt_outlined),
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'export_csv') _handleExport('csv');
-              if (value == 'export_json') _handleExport('json');
-              if (value == 'import_file') _handleImportFile();
-              if (value == 'import_notes') _handleImportFromNotes();
-              if (value == 'manage_names') _handleManageNames();
-              if (value == 'check_update') _handleCheckUpdate();
-            },
-            itemBuilder: (context) {
-              final tab = _tabDiscipline?.label ?? 'tous les vols';
-              return [
-                const PopupMenuItem(
-                    value: 'import_notes',
-                    child: Text('Importer depuis Notes (coller)')),
-                const PopupMenuItem(
-                    value: 'import_file', child: Text('Importer un fichier')),
-                const PopupMenuDivider(),
-                PopupMenuItem(
-                    value: 'export_csv', child: Text('Exporter en CSV ($tab)')),
-                PopupMenuItem(
-                    value: 'export_json', child: Text('Exporter en JSON ($tab)')),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
-                    value: 'manage_names',
-                    child: Text('Gérer les sites & runs (fusionner)')),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
-                    value: 'check_update',
-                    child: Text('Rechercher une mise à jour')),
-              ];
-            },
-          ),
+          _buildMenu(),
+          const SizedBox(width: 4),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: _DisciplineSwitcher(
+            controller: _tabController,
+            disciplines: _tabDisciplines,
+          ),
+        ),
       ),
       body: TabBarView(
         controller: _tabController,
@@ -591,171 +563,373 @@ class _HomeScreenState extends State<HomeScreen>
           for (final d in _tabDisciplines) _buildTab(d, numberLabels),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _createFlight,
-        backgroundColor: _tabDiscipline?.color,
-        foregroundColor: _tabDiscipline == null ? null : Colors.white,
-        child: const Icon(Icons.add),
+        backgroundColor: accent,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Nouveau vol', style: TextStyle(fontWeight: FontWeight.w600)),
       ),
+    );
+  }
+
+  Widget _buildMenu() {
+    PopupMenuItem<String> item(String value, IconData icon, String text) => PopupMenuItem(
+          value: value,
+          child: Row(children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 12),
+            Flexible(child: Text(text)),
+          ]),
+        );
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_horiz),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onSelected: (value) {
+        if (value == 'export_csv') _handleExport('csv');
+        if (value == 'export_json') _handleExport('json');
+        if (value == 'import_file') _handleImportFile();
+        if (value == 'import_notes') _handleImportFromNotes();
+        if (value == 'manage_names') _handleManageNames();
+        if (value == 'check_update') _handleCheckUpdate();
+      },
+      itemBuilder: (context) {
+        final tab = _tabDiscipline?.label ?? 'tous les vols';
+        return [
+          item('import_notes', Icons.content_paste, 'Importer depuis Notes'),
+          item('import_file', Icons.file_open_outlined, 'Importer un fichier'),
+          const PopupMenuDivider(),
+          item('export_csv', Icons.table_chart_outlined, 'Exporter en CSV ($tab)'),
+          item('export_json', Icons.data_object, 'Exporter en JSON ($tab)'),
+          const PopupMenuDivider(),
+          item('manage_names', Icons.merge_type, 'Gérer les sites & runs'),
+          item('check_update', Icons.system_update_outlined, 'Rechercher une mise à jour'),
+        ];
+      },
     );
   }
 
   /// One tab's content; [discipline] is null for "Tout".
   Widget _buildTab(Discipline? discipline, Map<String, String> numberLabels) {
     final filtered = _filteredFlights(discipline);
-    int countOf(Iterable<FlightEntry> flights) =>
-        flights.fold<int>(0, (sum, f) => sum + f.count);
-    final siteCount = filtered.map((f) => f.site).toSet().length;
+    final months = _groupByMonth(filtered);
 
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _StatItem(label: 'Vols', value: '${countOf(filtered)}'),
-              if (discipline == null)
-                for (final d in Discipline.values)
-                  _StatItem(
-                    label: d.label,
-                    value: '${countOf(filtered.where((f) => f.discipline == d))}',
-                  )
-              else
-                _StatItem(label: 'Sites', value: '$siteCount'),
-            ],
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: _SummaryCard(discipline: discipline, flights: filtered),
           ),
         ),
-        if (_hasActiveFilters)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (_filterSite != null)
-                  InputChip(
-                    label: Text('Site : $_filterSite'),
-                    onDeleted: () => setState(() => _filterSite = null),
-                  ),
-                if (_filterRun != null)
-                  InputChip(
-                    label: Text('Run : $_filterRun'),
-                    onDeleted: () => setState(() => _filterRun = null),
-                  ),
-                if (_filterWing != null)
-                  InputChip(
-                    label: Text('Voile : $_filterWing'),
-                    onDeleted: () => setState(() => _filterWing = null),
-                  ),
-                if (_filterDateFrom != null || _filterDateTo != null)
-                  InputChip(
-                    label: Text('Date : ${_formatDateRange()}'),
-                    onDeleted: () => setState(() {
-                      _filterDateFrom = null;
-                      _filterDateTo = null;
-                    }),
-                  ),
-                if (_filterHasComment)
-                  InputChip(
-                    label: const Text('Avec commentaire'),
-                    onDeleted: () => setState(() => _filterHasComment = false),
-                  ),
-              ],
+        if (_hasActiveFilters) SliverToBoxAdapter(child: _buildFilterChips()),
+        if (filtered.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _EmptyState(
+              filtered: _hasActiveFilters,
+              onClearFilters: _clearFilters,
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+            sliver: SliverList.builder(
+              itemCount: months.length,
+              itemBuilder: (context, index) => _MonthSection(
+                flights: months[index],
+                numberLabels: numberLabels,
+                showDiscipline: discipline == null,
+                onTap: _openDetail,
+              ),
             ),
           ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: filtered.isEmpty
-              ? _EmptyState(filtered: _hasActiveFilters)
-              : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final f = filtered[index];
-                    return _FlightRow(
-                      entry: f,
-                      numberLabel: numberLabels[f.id],
-                      showDiscipline: discipline == null,
-                      onTap: () => _openDetail(f),
-                    );
-                  },
-                ),
-        ),
       ],
     );
   }
-}
 
-class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _StatItem({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final onColor = Theme.of(context).colorScheme.onPrimaryContainer;
-    return Column(
-      children: [
-        Text(value,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(color: onColor, fontWeight: FontWeight.bold)),
-        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: onColor)),
-      ],
-    );
+  /// Splits newest-first flights into consecutive same-month groups.
+  static List<List<FlightEntry>> _groupByMonth(List<FlightEntry> flights) {
+    final groups = <List<FlightEntry>>[];
+    for (final f in flights) {
+      final last = groups.isEmpty ? null : groups.last.first.date;
+      if (last != null && last.year == f.date.year && last.month == f.date.month) {
+        groups.last.add(f);
+      } else {
+        groups.add([f]);
+      }
+    }
+    return groups;
   }
-}
 
-class _EmptyState extends StatelessWidget {
-  final bool filtered;
+  void _clearFilters() => setState(() {
+        _filterSite = null;
+        _filterRun = null;
+        _filterWing = null;
+        _filterDateFrom = null;
+        _filterDateTo = null;
+        _filterHasComment = false;
+      });
 
-  const _EmptyState({this.filtered = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildFilterChips() {
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         children: [
-          Icon(
-            filtered ? Icons.filter_alt_off_outlined : Icons.paragliding_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            filtered ? 'Aucun vol ne correspond à ce filtre' : 'Aucun vol enregistré',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(filtered
-              ? 'Essaie de retirer un filtre'
-              : 'Appuie sur + pour ajouter ton premier vol'),
+          for (final chip in [
+            if (_filterSite != null)
+              ('Site : $_filterSite', () => setState(() => _filterSite = null)),
+            if (_filterRun != null)
+              ('Run : $_filterRun', () => setState(() => _filterRun = null)),
+            if (_filterWing != null)
+              ('Voile : $_filterWing', () => setState(() => _filterWing = null)),
+            if (_filterDateFrom != null || _filterDateTo != null)
+              (
+                _formatDateRange(),
+                () => setState(() {
+                      _filterDateFrom = null;
+                      _filterDateTo = null;
+                    })
+              ),
+            if (_filterHasComment)
+              ('Avec commentaire', () => setState(() => _filterHasComment = false)),
+          ])
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InputChip(
+                label: Text(chip.$1),
+                onDeleted: chip.$2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+            ),
+          TextButton(onPressed: _clearFilters, child: const Text('Tout effacer')),
         ],
       ),
     );
   }
 }
 
-class _FlightRow extends StatelessWidget {
+/// Pill-shaped segmented control over the discipline tabs.
+class _DisciplineSwitcher extends StatelessWidget {
+  final TabController controller;
+  final List<Discipline?> disciplines;
+
+  const _DisciplineSwitcher({required this.controller, required this.disciplines});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final selected = disciplines[controller.index];
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: TabBar(
+        controller: controller,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(11),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
+          ],
+        ),
+        splashBorderRadius: BorderRadius.circular(11),
+        labelColor: selected?.on(context) ?? cs.primary,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+        tabs: [
+          for (final d in disciplines)
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (d != null) ...[
+                    DisciplineIcon(d, size: 18),
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Text(d?.label ?? 'Tout', overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Headline numbers for the visible tab, on the discipline's colour.
+class _SummaryCard extends StatelessWidget {
+  final Discipline? discipline;
+  final List<FlightEntry> flights;
+
+  const _SummaryCard({required this.discipline, required this.flights});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = discipline?.color ?? Discipline.allColor;
+    final darker = Color.lerp(base, Colors.black, 0.25)!;
+    int countOf(Iterable<FlightEntry> list) => list.fold<int>(0, (sum, f) => sum + f.count);
+    final now = DateTime.now();
+    final total = countOf(flights);
+    final thisYear = countOf(flights.where((f) => f.date.year == now.year));
+    final sites = flights.map((f) => f.site).toSet().length;
+    // Flights are newest-first.
+    final last = flights.isEmpty ? null : flights.first.date;
+
+    final stats = discipline == null
+        ? [
+            for (final d in Discipline.values)
+              (d.label, '${countOf(flights.where((f) => f.discipline == d))}'),
+            ('Dernier vol', last == null ? '–' : formatSince(last, now)),
+          ]
+        : [
+            ('Sites', '$sites'),
+            ('En ${now.year}', '$thisYear'),
+            ('Dernier vol', last == null ? '–' : formatSince(last, now)),
+          ];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          colors: [base, darker],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text('$total',
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 40, fontWeight: FontWeight.w800, height: 1)),
+              const SizedBox(width: 8),
+              Text(total > 1 ? 'vols' : 'vol',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600)),
+              const Spacer(),
+              if (discipline != null)
+                DisciplineIcon(discipline!, size: 34, color: Colors.white.withValues(alpha: 0.35)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              for (final (label, value) in stats)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A month's flights: a small header, then the flights in one rounded group.
+class _MonthSection extends StatelessWidget {
+  final List<FlightEntry> flights;
+  final Map<String, String> numberLabels;
+  final bool showDiscipline;
+  final ValueChanged<FlightEntry> onTap;
+
+  const _MonthSection({
+    required this.flights,
+    required this.numberLabels,
+    required this.showDiscipline,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final count = flights.fold<int>(0, (sum, f) => sum + f.count);
+    final headerStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: cs.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+            child: Row(
+              children: [
+                Expanded(child: Text(formatMonthYear(flights.first.date), style: headerStyle)),
+                Text('$count vol${count > 1 ? 's' : ''}',
+                    style: headerStyle?.copyWith(fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          Card(
+            child: Column(
+              children: [
+                for (var i = 0; i < flights.length; i++) ...[
+                  if (i > 0) const Divider(indent: 72),
+                  _FlightTile(
+                    entry: flights[i],
+                    numberLabel: numberLabels[flights[i].id],
+                    showDiscipline: showDiscipline,
+                    onTap: () => onTap(flights[i]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlightTile extends StatelessWidget {
   final FlightEntry entry;
   final String? numberLabel;
   final VoidCallback onTap;
 
-  /// On "Tout", marks the discipline with its colour and icon so the two
-  /// kinds of flights stay distinct within the same list.
+  /// On "Tout", names the discipline next to the wing so the two kinds of
+  /// flights stay distinct within the same list (the date badge already
+  /// carries its colour everywhere).
   final bool showDiscipline;
 
-  const _FlightRow({
+  const _FlightTile({
     required this.entry,
     required this.numberLabel,
     required this.onTap,
@@ -764,111 +938,166 @@ class _FlightRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = entry.date;
-    final dateStr =
-        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${(date.year % 100).toString().padLeft(2, '0')}';
-    final location =
-        entry.run.isNotEmpty ? '${entry.site} · ${entry.run}' : entry.site;
-    final details = entry.wing;
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
     final discipline = entry.discipline;
+    final muted = text.bodySmall?.copyWith(color: cs.onSurfaceVariant);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          decoration: showDiscipline
-              ? BoxDecoration(
-                  border: Border(left: BorderSide(color: discipline.color, width: 5)),
-                )
-              : null,
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 56,
-                child: showDiscipline
-                    ? Column(
-                        children: [
-                          DisciplineIcon(discipline, size: 18, color: discipline.color),
-                          Text(
-                            numberLabel ?? '',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: discipline.color),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      )
-                    : Text(
-                  numberLabel ?? '',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey.shade500),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(
-                width: 60,
-                child: Text(dateStr,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(location,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+        child: Row(
+          children: [
+            _DateBadge(date: entry.date, color: discipline.on(context)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(children: [
+                      TextSpan(
+                        text: entry.site,
+                        style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      if (entry.run.isNotEmpty)
+                        TextSpan(
+                          text: '  ${entry.run}',
+                          style: text.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                         ),
-                        if (entry.count > 1)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text('×${entry.count}',
-                                style: Theme.of(context).textTheme.bodySmall),
-                          ),
+                    ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      if (showDiscipline) ...[
+                        DisciplineIcon(discipline, size: 14, color: discipline.on(context)),
+                        const SizedBox(width: 4),
                       ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(details, style: Theme.of(context).textTheme.bodySmall),
-                    if (entry.comment.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(entry.comment,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(fontStyle: FontStyle.italic),
+                      Flexible(
+                        child: Text(
+                          entry.wing,
+                          style: muted,
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (entry.comment.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.chat_bubble_outline, size: 13, color: cs.onSurfaceVariant),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(numberLabel ?? '',
+                    style: text.labelMedium?.copyWith(
+                        color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                if (entry.count > 1) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: discipline.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text('×${entry.count}',
+                        style: text.labelSmall?.copyWith(
+                            color: discipline.on(context), fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// Calendar-style day/month badge, tinted with the discipline's colour.
+class _DateBadge extends StatelessWidget {
+  final DateTime date;
+  final Color color;
+
+  const _DateBadge({required this.date, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 48,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('${date.day}',
+              style: TextStyle(
+                  color: color, fontSize: 18, fontWeight: FontWeight.w800, height: 1.1)),
+          Text(formatShortMonth(date),
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final bool filtered;
+  final VoidCallback onClearFilters;
+
+  const _EmptyState({required this.filtered, required this.onClearFilters});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 96),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              filtered ? Icons.filter_alt_off_outlined : Icons.paragliding,
+              size: 42,
+              color: cs.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            filtered ? 'Aucun vol ne correspond' : 'Aucun vol pour le moment',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            filtered
+                ? 'Essaie de retirer un filtre.'
+                : 'Ajoute ton premier vol avec « Nouveau vol », ou importe ton carnet depuis le menu ⋯.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+          if (filtered) ...[
+            const SizedBox(height: 12),
+            TextButton(onPressed: onClearFilters, child: const Text('Effacer les filtres')),
+          ],
+        ],
       ),
     );
   }

@@ -91,7 +91,7 @@ class _LocationMapViewState extends State<LocationMapView> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Text("Impossible de charger la carte"),

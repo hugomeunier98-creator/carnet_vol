@@ -24,17 +24,10 @@ class PhotosSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Photos & vidéos', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          onPressed: () => _copyDateAndOpenPhotos(context),
-          icon: const Icon(Icons.photo_library_outlined),
-          label: const Text('Copier date et ouvrir Photos'),
-        ),
-      ],
+    return FilledButton.tonalIcon(
+      onPressed: () => _copyDateAndOpenPhotos(context),
+      icon: const Icon(Icons.photo_library_outlined),
+      label: const Text('Copier date et ouvrir Photos'),
     );
   }
 }

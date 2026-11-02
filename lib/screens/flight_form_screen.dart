@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import '../utils/date_format.dart';
 import '../widgets/discipline_icon.dart';
 
 class FlightFormScreen extends StatefulWidget {
@@ -122,129 +123,235 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     );
   }
 
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer ce vol ?'),
+        content: const Text('Cette action est définitive.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              minimumSize: const Size(64, 40),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) Navigator.of(context).pop('delete');
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  Widget _dateChips() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final isToday = _isSameDay(_date, today);
+    final isYesterday = _isSameDay(_date, yesterday);
+    final isOther = !isToday && !isYesterday;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ChoiceChip(
+          label: const Text("Aujourd'hui"),
+          selected: isToday,
+          onSelected: (_) => setState(() => _date = today),
+        ),
+        ChoiceChip(
+          label: const Text('Hier'),
+          selected: isYesterday,
+          onSelected: (_) => setState(() => _date = yesterday),
+        ),
+        ChoiceChip(
+          avatar: Icon(Icons.calendar_today_outlined, size: 16,
+              color: isOther ? null : Theme.of(context).colorScheme.onSurfaceVariant),
+          label: Text(isOther ? formatLongDate(_date) : 'Autre date'),
+          selected: isOther,
+          onSelected: (_) => _pickDate(),
+        ),
+      ],
+    );
+  }
+
+  Widget _countStepper() {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(Icons.repeat, color: cs.onSurfaceVariant),
+        const SizedBox(width: 12),
+        const Expanded(child: Text('Vols identiques')),
+        IconButton.filledTonal(
+          onPressed: _count > 1 ? () => setState(() => _count--) : null,
+          icon: const Icon(Icons.remove),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text('$_count',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        ),
+        IconButton.filledTonal(
+          onPressed: () => setState(() => _count++),
+          icon: const Icon(Icons.add),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
+    final accent = _discipline.color;
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol')),
+      appBar: AppBar(
+        title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol'),
+        actions: [
+          if (isEditing)
+            IconButton(
+              tooltip: 'Supprimer',
+              onPressed: _confirmDelete,
+              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+            ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
             SegmentedButton<Discipline>(
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor: accent.withValues(alpha: 0.15),
+                selectedForegroundColor: _discipline.on(context),
+                minimumSize: const Size(0, 46),
+              ),
               segments: [
                 for (final d in Discipline.values)
                   ButtonSegment(value: d, label: Text(d.label), icon: DisciplineIcon(d, size: 18)),
               ],
               selected: {_discipline},
+              showSelectedIcon: false,
               onSelectionChanged: (s) => setState(() => _discipline = s.single),
             ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: _pickDate,
-              child: InputDecorator(
+            _FormSection(title: 'Quand', children: [_dateChips()]),
+            _FormSection(title: 'Où', children: [
+              _autocompleteField(
+                label: _discipline == Discipline.parapente ? 'Site / déco' : 'Site',
+                icon: Icons.place_outlined,
+                controller: _siteController,
+                options: widget.knownSites,
+                required: true,
+              ),
+              _autocompleteField(
+                label: 'Run (optionnel)',
+                icon: Icons.route_outlined,
+                controller: _runController,
+                options: widget.knownRuns,
+              ),
+            ]),
+            _FormSection(title: 'Vol', children: [
+              _autocompleteField(
+                // Keyed so the suggestions follow a change of discipline.
+                key: ValueKey(_discipline),
+                label: 'Voile',
+                icon: Icons.paragliding_outlined,
+                controller: _wingController,
+                options: widget.knownWings[_discipline] ?? const [],
+                required: true,
+              ),
+              TextFormField(
+                controller: _verticalController,
+                // Speedflying logs mostly vertical drop; parapente a duration.
+                decoration: _discipline == Discipline.parapente
+                    ? const InputDecoration(
+                        labelText: 'Durée',
+                        helperText: 'ex: 45min, 1h30',
+                        prefixIcon: Icon(Icons.timer_outlined),
+                      )
+                    : const InputDecoration(
+                        labelText: 'Dénivelé / durée',
+                        helperText: 'ex: 800, 1h, soaring, 600/soaring',
+                        prefixIcon: Icon(Icons.trending_down),
+                      ),
+              ),
+              _countStepper(),
+            ]),
+            _FormSection(title: 'Notes', children: [
+              TextFormField(
+                controller: _commentController,
+                maxLines: 4,
+                minLines: 2,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
-                  labelText: 'Date',
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                child: Text(
-                  '${_date.day.toString().padLeft(2, '0')}/${_date.month.toString().padLeft(2, '0')}/${_date.year}',
+                  hintText: 'Conditions, sensations, à retenir…',
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _autocompleteField(
-              label: 'Lieu / site de vol',
-              icon: Icons.place_outlined,
-              controller: _siteController,
-              options: widget.knownSites,
-              required: true,
-            ),
-            const SizedBox(height: 16),
-            _autocompleteField(
-              label: 'Run (optionnel)',
-              icon: Icons.route_outlined,
-              controller: _runController,
-              options: widget.knownRuns,
-            ),
-            const SizedBox(height: 16),
-            _autocompleteField(
-              // Keyed so the suggestions follow a change of discipline.
-              key: ValueKey(_discipline),
-              label: 'Voile',
-              icon: Icons.paragliding_outlined,
-              controller: _wingController,
-              options: widget.knownWings[_discipline] ?? const [],
-              required: true,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _verticalController,
-              // Speedflying logs mostly vertical drop; parapente a duration.
-              decoration: _discipline == Discipline.parapente
-                  ? const InputDecoration(
-                      labelText: 'Durée',
-                      helperText: 'ex: 45min, 1h30',
-                      prefixIcon: Icon(Icons.timer_outlined),
-                    )
-                  : const InputDecoration(
-                      labelText: 'Dénivelé / durée',
-                      helperText: 'ex: 800, 1h, soaring, 600/soaring',
-                      prefixIcon: Icon(Icons.trending_down),
-                    ),
-            ),
-            const SizedBox(height: 16),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Nombre de vols identiques',
-                prefixIcon: Icon(Icons.repeat),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('$_count', style: Theme.of(context).textTheme.titleMedium),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: _count > 1 ? () => setState(() => _count--) : null,
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() => _count++),
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _commentController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Commentaire',
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.check),
-              label: const Text('Enregistrer'),
-            ),
-            if (isEditing) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop('delete'),
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                label: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-              ),
-            ],
+            ]),
           ],
         ),
       ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.white),
+            onPressed: _save,
+            icon: const Icon(Icons.check),
+            label: const Text('Enregistrer'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A titled group of fields.
+class _FormSection extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _FormSection({required this.title, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 20, 6, 8),
+          child: Text(title,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700)),
+        ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  children[i],
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

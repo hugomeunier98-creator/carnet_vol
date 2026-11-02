@@ -11,6 +11,16 @@ enum Discipline {
 
   const Discipline(this.label, this.color);
 
+  /// Accent of the "Tout" tab (every discipline), readable under white text
+  /// in light and dark mode alike.
+  static const allColor = Color(0xFF2F5D8A);
+
+  /// [color] as text/icon colour on the current surface: lifted in dark
+  /// mode, where the saturated base colour lacks contrast.
+  Color on(BuildContext context) => Theme.of(context).brightness == Brightness.dark
+      ? Color.lerp(color, Colors.white, 0.35)!
+      : color;
+
   static Discipline? tryParse(String? name) {
     for (final d in values) {
       if (d.name == name) return d;
