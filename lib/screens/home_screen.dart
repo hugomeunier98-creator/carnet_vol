@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
+import '../services/app_update.dart';
 import '../services/export_service.dart';
 import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
@@ -16,7 +17,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _storage = StorageService();
   final _export = ExportService();
 
@@ -58,7 +59,69 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A launch already updates on its own (web/index.html); this covers
+    // coming back to an app left open in the background.
+    if (state == AppLifecycleState.resumed) _offerUpdateIfAvailable();
+  }
+
+  bool _updateBannerShown = false;
+
+  Future<void> _offerUpdateIfAvailable() async {
+    final current = AppUpdate.currentBuild;
+    if (current == null || _updateBannerShown) return;
+    final latest = await AppUpdate.latestBuild();
+    if (latest == null || latest == current || !mounted) return;
+    _updateBannerShown = true;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showMaterialBanner(MaterialBanner(
+      content: const Text('Nouvelle version disponible'),
+      leading: const Icon(Icons.system_update),
+      actions: [
+        TextButton(
+          onPressed: () {
+            messenger.hideCurrentMaterialBanner();
+            _updateBannerShown = false;
+          },
+          child: const Text('Plus tard'),
+        ),
+        FilledButton(
+          onPressed: AppUpdate.apply,
+          child: const Text('Mettre à jour'),
+        ),
+      ],
+    ));
+  }
+
+  Future<void> _handleCheckUpdate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) =>
+        messenger.showSnackBar(SnackBar(content: Text(text)));
+    final current = AppUpdate.currentBuild;
+    if (current == null) {
+      say('Version de développement : pas de mise à jour à vérifier');
+      return;
+    }
+    final latest = await AppUpdate.latestBuild();
+    if (latest == null) {
+      say('Impossible de vérifier (hors ligne ?)');
+    } else if (latest == current) {
+      say('Application à jour (version $current)');
+    } else {
+      say('Mise à jour en cours…');
+      await AppUpdate.apply();
+    }
   }
 
   Future<void> _load() async {
@@ -413,6 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (value == 'import_file') _handleImportFile();
               if (value == 'import_notes') _handleImportFromNotes();
               if (value == 'manage_names') _handleManageNames();
+              if (value == 'check_update') _handleCheckUpdate();
             },
             itemBuilder: (context) => const [
               PopupMenuItem(
@@ -426,6 +490,10 @@ class _HomeScreenState extends State<HomeScreen> {
               PopupMenuItem(
                   value: 'manage_names',
                   child: Text('Gérer les sites & runs (fusionner)')),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                  value: 'check_update',
+                  child: Text('Rechercher une mise à jour')),
             ],
           ),
         ],
