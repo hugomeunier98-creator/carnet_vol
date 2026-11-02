@@ -6,7 +6,7 @@ import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
 import '../utils/latlng_parser.dart';
 import '../widgets/location_map_view.dart';
-import '../widgets/media_section.dart';
+import '../widgets/photos_section.dart';
 import 'flight_form_screen.dart';
 
 class FlightDetailScreen extends StatefulWidget {
@@ -164,7 +164,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 8),
-          MediaSection(flightId: e.id),
+          PhotosSection(date: e.date),
         ],
       ),
     );

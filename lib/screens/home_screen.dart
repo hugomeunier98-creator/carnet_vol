@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/flight_entry.dart';
 import '../services/export_service.dart';
-import '../services/media_service.dart';
 import '../services/storage_service.dart';
 import '../utils/flight_numbering.dart';
 import 'flight_detail_screen.dart';
 import 'flight_form_screen.dart';
 import 'manage_names_screen.dart';
-import 'media_import_screen.dart';
 import 'notes_import_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,13 +19,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _storage = StorageService();
   final _export = ExportService();
-  final _mediaService = MediaService();
 
   List<FlightEntry> _flights = [];
   List<String> _sites = [];
   List<String> _runs = [];
   List<String> _wings = [];
-  Set<String> _flightIdsWithMedia = {};
   bool _loading = true;
 
   String? _filterSite;
@@ -36,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _filterDateFrom;
   DateTime? _filterDateTo;
   bool _filterHasComment = false;
-  bool _filterHasMedia = false;
 
   Map<String, String> get _numberLabels => computeFlightNumberLabels(_flights);
 
@@ -46,8 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _filterWing != null ||
       _filterDateFrom != null ||
       _filterDateTo != null ||
-      _filterHasComment ||
-      _filterHasMedia;
+      _filterHasComment;
 
   List<FlightEntry> get _filteredFlights {
     return _flights.where((f) {
@@ -57,7 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_filterDateFrom != null && f.date.isBefore(_filterDateFrom!)) return false;
       if (_filterDateTo != null && f.date.isAfter(_filterDateTo!)) return false;
       if (_filterHasComment && f.comment.trim().isEmpty) return false;
-      if (_filterHasMedia && !_flightIdsWithMedia.contains(f.id)) return false;
       return true;
     }).toList();
   }
@@ -90,16 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _wings = wings;
       _loading = false;
     });
-    // Not needed for the first paint (only the "avec média" filter uses it),
-    // and it involves an IndexedDB open + full scan - let it happen after
-    // the list is already showing rather than delaying startup.
-    _loadMediaFlags();
-  }
-
-  Future<void> _loadMediaFlags() async {
-    final flightIdsWithMedia = await _mediaService.flightIdsWithMedia();
-    if (!mounted) return;
-    setState(() => _flightIdsWithMedia = flightIdsWithMedia);
   }
 
   Future<void> _persist() async {
@@ -165,7 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-    _loadMediaFlags();
   }
 
   Future<void> _handleExport(String format) async {
@@ -189,15 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _mergeImported(imported);
   }
 
-  Future<void> _handleImportMedia() async {
-    final count = await Navigator.of(context).push<int>(
-      MaterialPageRoute(builder: (_) => MediaImportScreen(flights: _flights)),
-    );
-    if (count == null || !mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('$count média(s) importé(s)')));
-    _loadMediaFlags();
-  }
 
   Future<void> _handleManageNames() async {
     await Navigator.of(context).push(
@@ -246,7 +219,6 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime? dateFrom = _filterDateFrom;
     DateTime? dateTo = _filterDateTo;
     bool hasComment = _filterHasComment;
-    bool hasMedia = _filterHasMedia;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -315,12 +287,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   value: hasComment,
                   onChanged: (v) => setModalState(() => hasComment = v),
                 ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Avec média uniquement'),
-                  value: hasMedia,
-                  onChanged: (v) => setModalState(() => hasMedia = v),
-                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -333,7 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           dateFrom = null;
                           dateTo = null;
                           hasComment = false;
-                          hasMedia = false;
                         }),
                         child: const Text('Réinitialiser'),
                       ),
@@ -349,7 +314,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             _filterDateFrom = dateFrom;
                             _filterDateTo = dateTo;
                             _filterHasComment = hasComment;
-                            _filterHasMedia = hasMedia;
                           });
                           Navigator.of(context).pop();
                         },
@@ -448,7 +412,6 @@ class _HomeScreenState extends State<HomeScreen> {
               if (value == 'export_json') _handleExport('json');
               if (value == 'import_file') _handleImportFile();
               if (value == 'import_notes') _handleImportFromNotes();
-              if (value == 'import_media') _handleImportMedia();
               if (value == 'manage_names') _handleManageNames();
             },
             itemBuilder: (context) => const [
@@ -456,9 +419,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   value: 'import_notes',
                   child: Text('Importer depuis Notes (coller)')),
               PopupMenuItem(value: 'import_file', child: Text('Importer un fichier')),
-              PopupMenuItem(
-                  value: 'import_media',
-                  child: Text('Importer des médias (photos/vidéos)')),
               PopupMenuDivider(),
               PopupMenuItem(value: 'export_csv', child: Text('Exporter en CSV')),
               PopupMenuItem(value: 'export_json', child: Text('Exporter en JSON')),
@@ -522,11 +482,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     InputChip(
                       label: const Text('Avec commentaire'),
                       onDeleted: () => setState(() => _filterHasComment = false),
-                    ),
-                  if (_filterHasMedia)
-                    InputChip(
-                      label: const Text('Avec média'),
-                      onDeleted: () => setState(() => _filterHasMedia = false),
                     ),
                 ],
               ),
