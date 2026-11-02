@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../utils/date_format.dart';
+import '../widgets/page_colors.dart';
 import '../widgets/discipline_icon.dart';
 
 class FlightFormScreen extends StatefulWidget {
@@ -49,7 +50,9 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     _discipline = e?.discipline ?? widget.discipline;
     _siteController = TextEditingController(text: e?.site ?? '');
     _runController = TextEditingController(text: e?.run ?? '');
-    _verticalController = TextEditingController(text: e?.verticalOrDuration ?? '');
+    _verticalController = TextEditingController(
+      text: e?.verticalOrDuration ?? '',
+    );
     _wingController = TextEditingController(text: e?.wing ?? '');
     _commentController = TextEditingController(text: e?.comment ?? '');
     _count = e?.count ?? 1;
@@ -104,13 +107,17 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
       key: key,
       optionsBuilder: (v) {
         if (v.text.isEmpty) return options;
-        return options.where((s) => s.toLowerCase().contains(v.text.toLowerCase()));
+        return options.where(
+          (s) => s.toLowerCase().contains(v.text.toLowerCase()),
+        );
       },
       initialValue: TextEditingValue(text: controller.text),
       onSelected: (v) => controller.text = v,
       fieldViewBuilder: (context, fieldController, focusNode, onSubmit) {
         fieldController.text = controller.text;
-        fieldController.addListener(() => controller.text = fieldController.text);
+        fieldController.addListener(
+          () => controller.text = fieldController.text,
+        );
         return TextFormField(
           controller: fieldController,
           focusNode: focusNode,
@@ -173,8 +180,13 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
           onSelected: (_) => setState(() => _date = yesterday),
         ),
         ChoiceChip(
-          avatar: Icon(Icons.calendar_today_outlined, size: 16,
-              color: isOther ? null : Theme.of(context).colorScheme.onSurfaceVariant),
+          avatar: Icon(
+            Icons.calendar_today_outlined,
+            size: 16,
+            color: isOther
+                ? null
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           label: Text(isOther ? formatLongDate(_date) : 'Autre date'),
           selected: isOther,
           onSelected: (_) => _pickDate(),
@@ -196,9 +208,12 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
         ),
         SizedBox(
           width: 40,
-          child: Text('$_count',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          child: Text(
+            '$_count',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ),
         IconButton.filledTonal(
           onPressed: () => setState(() => _count++),
@@ -212,104 +227,126 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
     final accent = _discipline.color;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: accent,
-        title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol'),
-        actions: [
-          if (isEditing)
-            IconButton(
-              tooltip: 'Supprimer',
-              onPressed: _confirmDelete,
-              icon: const Icon(Icons.delete_outline),
-            ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          children: [
-            SegmentedButton<Discipline>(
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: accent.withValues(alpha: 0.15),
-                selectedForegroundColor: _discipline.on(context),
-                minimumSize: const Size(0, 46),
+    return PageColors(
+      top: accent,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: accent,
+          title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol'),
+          actions: [
+            if (isEditing)
+              IconButton(
+                tooltip: 'Supprimer',
+                onPressed: _confirmDelete,
+                icon: const Icon(Icons.delete_outline),
               ),
-              segments: [
-                for (final d in Discipline.values)
-                  ButtonSegment(value: d, label: Text(d.label), icon: DisciplineIcon(d, size: 18)),
-              ],
-              selected: {_discipline},
-              showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _discipline = s.single),
-            ),
-            _FormSection(title: 'Quand', children: [_dateChips()]),
-            _FormSection(title: 'Où', children: [
-              _autocompleteField(
-                label: _discipline == Discipline.parapente ? 'Site / déco' : 'Site',
-                icon: Icons.place_outlined,
-                controller: _siteController,
-                options: widget.knownSites,
-                required: true,
-              ),
-              _autocompleteField(
-                label: 'Run (optionnel)',
-                icon: Icons.route_outlined,
-                controller: _runController,
-                options: widget.knownRuns,
-              ),
-            ]),
-            _FormSection(title: 'Vol', children: [
-              _autocompleteField(
-                // Keyed so the suggestions follow a change of discipline.
-                key: ValueKey(_discipline),
-                label: 'Voile',
-                icon: Icons.paragliding_outlined,
-                controller: _wingController,
-                options: widget.knownWings[_discipline] ?? const [],
-                required: true,
-              ),
-              TextFormField(
-                controller: _verticalController,
-                // Speedflying logs mostly vertical drop; parapente a duration.
-                decoration: _discipline == Discipline.parapente
-                    ? const InputDecoration(
-                        labelText: 'Durée',
-                        helperText: 'ex: 45min, 1h30',
-                        prefixIcon: Icon(Icons.timer_outlined),
-                      )
-                    : const InputDecoration(
-                        labelText: 'Dénivelé / durée',
-                        helperText: 'ex: 800, 1h, soaring, 600/soaring',
-                        prefixIcon: Icon(Icons.trending_down),
-                      ),
-              ),
-              _countStepper(),
-            ]),
-            _FormSection(title: 'Notes', children: [
-              TextFormField(
-                controller: _commentController,
-                maxLines: 4,
-                minLines: 2,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'Conditions, sensations, à retenir…',
-                ),
-              ),
-            ]),
+            const SizedBox(width: 4),
           ],
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.white),
-            onPressed: _save,
-            icon: const Icon(Icons.check),
-            label: const Text('Enregistrer'),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            children: [
+              SegmentedButton<Discipline>(
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: accent.withValues(alpha: 0.15),
+                  selectedForegroundColor: _discipline.on(context),
+                  minimumSize: const Size(0, 46),
+                ),
+                segments: [
+                  for (final d in Discipline.values)
+                    ButtonSegment(
+                      value: d,
+                      label: Text(d.label),
+                      icon: DisciplineIcon(d, size: 18),
+                    ),
+                ],
+                selected: {_discipline},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) =>
+                    setState(() => _discipline = s.single),
+              ),
+              _FormSection(title: 'Quand', children: [_dateChips()]),
+              _FormSection(
+                title: 'Où',
+                children: [
+                  _autocompleteField(
+                    label: _discipline == Discipline.parapente
+                        ? 'Site / déco'
+                        : 'Site',
+                    icon: Icons.place_outlined,
+                    controller: _siteController,
+                    options: widget.knownSites,
+                    required: true,
+                  ),
+                  _autocompleteField(
+                    label: 'Run (optionnel)',
+                    icon: Icons.route_outlined,
+                    controller: _runController,
+                    options: widget.knownRuns,
+                  ),
+                ],
+              ),
+              _FormSection(
+                title: 'Vol',
+                children: [
+                  _autocompleteField(
+                    // Keyed so the suggestions follow a change of discipline.
+                    key: ValueKey(_discipline),
+                    label: 'Voile',
+                    icon: Icons.paragliding_outlined,
+                    controller: _wingController,
+                    options: widget.knownWings[_discipline] ?? const [],
+                    required: true,
+                  ),
+                  TextFormField(
+                    controller: _verticalController,
+                    // Speedflying logs mostly vertical drop; parapente a duration.
+                    decoration: _discipline == Discipline.parapente
+                        ? const InputDecoration(
+                            labelText: 'Durée',
+                            helperText: 'ex: 45min, 1h30',
+                            prefixIcon: Icon(Icons.timer_outlined),
+                          )
+                        : const InputDecoration(
+                            labelText: 'Dénivelé / durée',
+                            helperText: 'ex: 800, 1h, soaring, 600/soaring',
+                            prefixIcon: Icon(Icons.trending_down),
+                          ),
+                  ),
+                  _countStepper(),
+                ],
+              ),
+              _FormSection(
+                title: 'Notes',
+                children: [
+                  TextFormField(
+                    controller: _commentController,
+                    maxLines: 4,
+                    minLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Conditions, sensations, à retenir…',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: _save,
+              icon: const Icon(Icons.check),
+              label: const Text('Enregistrer'),
+            ),
           ),
         ),
       ),
@@ -332,11 +369,13 @@ class _FormSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(6, 20, 6, 8),
-          child: Text(title,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700)),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
         Card(
           child: Padding(

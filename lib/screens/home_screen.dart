@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
+import '../widgets/page_colors.dart';
 import '../services/app_update.dart';
 import '../services/backup_service.dart';
 import '../services/export_service.dart';
@@ -26,9 +27,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// Tabs: one per discipline, then "Tout" (every flight, by date).
   static const _tabDisciplines = <Discipline?>[...Discipline.values, null];
 
-  late final TabController _tabController =
-      TabController(length: _tabDisciplines.length, vsync: this)
-        ..addListener(() => setState(() {}));
+  late final TabController _tabController = TabController(
+    length: _tabDisciplines.length,
+    vsync: this,
+  )..addListener(() => setState(() {}));
 
   /// Discipline of the visible tab; null on "Tout".
   Discipline? get _tabDiscipline => _tabDisciplines[_tabController.index];
@@ -65,7 +67,8 @@ class _HomeScreenState extends State<HomeScreen>
       if (_filterSite != null && f.site != _filterSite) return false;
       if (_filterRun != null && f.run != _filterRun) return false;
       if (_filterWing != null && f.wing != _filterWing) return false;
-      if (_filterDateFrom != null && f.date.isBefore(_filterDateFrom!)) return false;
+      final from = _filterDateFrom;
+      if (from != null && f.date.isBefore(from)) return false;
       if (_filterDateTo != null && f.date.isAfter(_filterDateTo!)) return false;
       if (_filterHasComment && f.comment.trim().isEmpty) return false;
       return true;
@@ -102,23 +105,25 @@ class _HomeScreenState extends State<HomeScreen>
     if (latest == null || latest == current || !mounted) return;
     _updateBannerShown = true;
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showMaterialBanner(MaterialBanner(
-      content: const Text('Nouvelle version disponible'),
-      leading: const Icon(Icons.system_update),
-      actions: [
-        TextButton(
-          onPressed: () {
-            messenger.hideCurrentMaterialBanner();
-            _updateBannerShown = false;
-          },
-          child: const Text('Plus tard'),
-        ),
-        FilledButton(
-          onPressed: AppUpdate.apply,
-          child: const Text('Mettre à jour'),
-        ),
-      ],
-    ));
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        content: const Text('Nouvelle version disponible'),
+        leading: const Icon(Icons.system_update),
+        actions: [
+          TextButton(
+            onPressed: () {
+              messenger.hideCurrentMaterialBanner();
+              _updateBannerShown = false;
+            },
+            child: const Text('Plus tard'),
+          ),
+          FilledButton(
+            onPressed: AppUpdate.apply,
+            child: const Text('Mettre à jour'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleCheckUpdate() async {
@@ -187,17 +192,18 @@ class _HomeScreenState extends State<HomeScreen>
   /// Wing suggestions per discipline: the wings already flown in it, or
   /// every known wing while that discipline has no flight yet.
   Map<Discipline, List<String>> get _wingsByDiscipline => {
-        for (final d in Discipline.values)
-          d: () {
-            final used = _flights
+    for (final d in Discipline.values)
+      d: () {
+        final used =
+            _flights
                 .where((f) => f.discipline == d && f.wing.isNotEmpty)
                 .map((f) => f.wing)
                 .toSet()
                 .toList()
               ..sort();
-            return used.isEmpty ? _wings : used;
-          }(),
-      };
+        return used.isEmpty ? _wings : used;
+      }(),
+  };
 
   /// The visible tab's discipline, or asks for one on "Tout".
   Future<Discipline?> _resolveDiscipline(String title) async {
@@ -210,7 +216,10 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+              title: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             for (final d in Discipline.values)
               ListTile(
@@ -279,8 +288,11 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _handleExport(String format) async {
     if (format == 'json') {
       final backup = await _backup.load();
-      await _export.exportToFile(backup.toJson(), Backup.fileName(DateTime.now()),
-          mimeType: 'application/json');
+      await _export.exportToFile(
+        backup.toJson(),
+        Backup.fileName(DateTime.now()),
+        mimeType: 'application/json',
+      );
       return;
     }
     final discipline = _tabDiscipline;
@@ -288,15 +300,19 @@ class _HomeScreenState extends State<HomeScreen>
         ? _flights
         : _flights.where((f) => f.discipline == discipline).toList();
     final suffix = discipline == null ? '' : '_${discipline.name}';
-    await _export.exportToFile(_export.toCsv(flights), 'carnet_de_vol$suffix.csv',
-        mimeType: 'text/csv');
+    await _export.exportToFile(
+      _export.toCsv(flights),
+      'carnet_de_vol$suffix.csv',
+      mimeType: 'text/csv',
+    );
   }
 
   final _backup = BackupService();
 
   Future<void> _handleImportFile() async {
     final discipline = await _resolveDiscipline(
-        'Discipline des vols importés (si le fichier ne la précise pas)');
+      'Discipline des vols importés (si le fichier ne la précise pas)',
+    );
     if (discipline == null) return;
     final imported = await _export.importFromFile(discipline);
     if (imported == null) return;
@@ -306,24 +322,32 @@ class _HomeScreenState extends State<HomeScreen>
       _runs = {..._runs, ...imported.runs}.toList()..sort();
       _wings = {..._wings, ...imported.wings}.toList()..sort();
     });
-    _mergeImported(imported.flights,
-        gpsPoints: imported.runLocations.length);
+    _mergeImported(imported.flights, gpsPoints: imported.runLocations.length);
   }
 
   Future<void> _handleImportFromNotes() async {
     final discipline = await _resolveDiscipline('Discipline des vols importés');
     if (discipline == null || !mounted) return;
     final imported = await Navigator.of(context).push<List<FlightEntry>>(
-      MaterialPageRoute(builder: (_) => NotesImportScreen(discipline: discipline)),
+      MaterialPageRoute(
+        builder: (_) => PageColors(
+          top: Discipline.allColor,
+          child: NotesImportScreen(discipline: discipline),
+        ),
+      ),
     );
     if (imported == null) return;
     _mergeImported(imported);
   }
 
-
   Future<void> _handleManageNames() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ManageNamesScreen()),
+      MaterialPageRoute(
+        builder: (_) => const PageColors(
+          top: Discipline.allColor,
+          child: ManageNamesScreen(),
+        ),
+      ),
     );
     await _load();
   }
@@ -336,9 +360,11 @@ class _HomeScreenState extends State<HomeScreen>
         // #12 is not speedflying #12).
         var idx = _flights.indexWhere((f) => f.id == entry.id);
         if (idx < 0 && entry.sourceNumber != null) {
-          idx = _flights.indexWhere((f) =>
-              f.discipline == entry.discipline &&
-              f.sourceNumber == entry.sourceNumber);
+          idx = _flights.indexWhere(
+            (f) =>
+                f.discipline == entry.discipline &&
+                f.sourceNumber == entry.sourceNumber,
+          );
         }
         if (idx >= 0) {
           _flights[idx] = entry;
@@ -352,8 +378,12 @@ class _HomeScreenState extends State<HomeScreen>
     _persist();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${imported.length} vol(s) importé(s)'
-            '${gpsPoints > 0 ? ', $gpsPoints point(s) GPS' : ''}')),
+        SnackBar(
+          content: Text(
+            '${imported.length} vol(s) importé(s)'
+            '${gpsPoints > 0 ? ', $gpsPoints point(s) GPS' : ''}',
+          ),
+        ),
       );
     }
   }
@@ -379,112 +409,114 @@ class _HomeScreenState extends State<HomeScreen>
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 0,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Filtrer les vols',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 16),
-                _filterDropdown(
-                  label: 'Site',
-                  value: site,
-                  options: _sites,
-                  onChanged: (v) => setModalState(() => site = v),
-                ),
-                const SizedBox(height: 12),
-                _filterDropdown(
-                  label: 'Run',
-                  value: run,
-                  options: _runs,
-                  onChanged: (v) => setModalState(() => run = v),
-                ),
-                const SizedBox(height: 12),
-                _filterDropdown(
-                  label: 'Voile',
-                  value: wing,
-                  options: _wings,
-                  onChanged: (v) => setModalState(() => wing = v),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _filterDateField(
-                        context: context,
-                        label: 'Du',
-                        value: dateFrom,
-                        onChanged: (v) => setModalState(() => dateFrom = v),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 0,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Filtrer les vols',
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 16),
+                  _filterDropdown(
+                    label: 'Site',
+                    value: site,
+                    options: _sites,
+                    onChanged: (v) => setModalState(() => site = v),
+                  ),
+                  const SizedBox(height: 12),
+                  _filterDropdown(
+                    label: 'Run',
+                    value: run,
+                    options: _runs,
+                    onChanged: (v) => setModalState(() => run = v),
+                  ),
+                  const SizedBox(height: 12),
+                  _filterDropdown(
+                    label: 'Voile',
+                    value: wing,
+                    options: _wings,
+                    onChanged: (v) => setModalState(() => wing = v),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _filterDateField(
+                          context: context,
+                          label: 'Du',
+                          value: dateFrom,
+                          onChanged: (v) => setModalState(() => dateFrom = v),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _filterDateField(
-                        context: context,
-                        label: 'Au',
-                        value: dateTo,
-                        onChanged: (v) => setModalState(() => dateTo = v),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _filterDateField(
+                          context: context,
+                          label: 'Au',
+                          value: dateTo,
+                          onChanged: (v) => setModalState(() => dateTo = v),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Avec commentaire uniquement'),
-                  value: hasComment,
-                  onChanged: (v) => setModalState(() => hasComment = v),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => setModalState(() {
-                          site = null;
-                          run = null;
-                          wing = null;
-                          dateFrom = null;
-                          dateTo = null;
-                          hasComment = false;
-                        }),
-                        child: const Text('Réinitialiser'),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Avec commentaire uniquement'),
+                    value: hasComment,
+                    onChanged: (v) => setModalState(() => hasComment = v),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => setModalState(() {
+                            site = null;
+                            run = null;
+                            wing = null;
+                            dateFrom = null;
+                            dateTo = null;
+                            hasComment = false;
+                          }),
+                          child: const Text('Réinitialiser'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () {
-                          setState(() {
-                            _filterSite = site;
-                            _filterRun = run;
-                            _filterWing = wing;
-                            _filterDateFrom = dateFrom;
-                            _filterDateTo = dateTo;
-                            _filterHasComment = hasComment;
-                          });
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Appliquer'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            setState(() {
+                              _filterSite = site;
+                              _filterRun = run;
+                              _filterWing = wing;
+                              _filterDateFrom = dateFrom;
+                              _filterDateTo = dateTo;
+                              _filterHasComment = hasComment;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Appliquer'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        });
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -532,7 +564,9 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: InputDecoration(labelText: label),
       items: [
         const DropdownMenuItem<String?>(value: null, child: Text('Tous')),
-        ...options.map((o) => DropdownMenuItem<String?>(value: o, child: Text(o))),
+        ...options.map(
+          (o) => DropdownMenuItem<String?>(value: o, child: Text(o)),
+        ),
       ],
       onChanged: onChanged,
     );
@@ -547,66 +581,79 @@ class _HomeScreenState extends State<HomeScreen>
     final numberLabels = _numberLabels;
     final accent = _tabDiscipline?.color ?? Discipline.allColor;
 
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 64,
-        backgroundColor: accent,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
-        title: Text(
-          'Carnet de vol',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(
-                  color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: -0.5),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Filtrer',
-            onPressed: _openFilterSheet,
-            icon: Badge(
-              isLabelVisible: _hasActiveFilters,
-              smallSize: 8,
-              child: Icon(_hasActiveFilters ? Icons.filter_alt : Icons.filter_alt_outlined),
+    return PageColors(
+      top: accent,
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 64,
+          backgroundColor: accent,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+          ),
+          title: Text(
+            'Carnet de vol',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
             ),
           ),
-          _buildMenu(),
-          const SizedBox(width: 4),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: _DisciplineSwitcher(
-            controller: _tabController,
-            disciplines: _tabDisciplines,
+          actions: [
+            IconButton(
+              tooltip: 'Filtrer',
+              onPressed: _openFilterSheet,
+              icon: Badge(
+                isLabelVisible: _hasActiveFilters,
+                smallSize: 8,
+                child: Icon(
+                  _hasActiveFilters
+                      ? Icons.filter_alt
+                      : Icons.filter_alt_outlined,
+                ),
+              ),
+            ),
+            _buildMenu(),
+            const SizedBox(width: 4),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(56),
+            child: _DisciplineSwitcher(
+              controller: _tabController,
+              disciplines: _tabDisciplines,
+            ),
           ),
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          for (final d in _tabDisciplines) _buildTab(d, numberLabels),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createFlight,
-        backgroundColor: accent,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nouveau vol', style: TextStyle(fontWeight: FontWeight.w600)),
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            for (final d in _tabDisciplines) _buildTab(d, numberLabels),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _createFlight,
+          backgroundColor: accent,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text(
+            'Nouveau vol',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildMenu() {
-    PopupMenuItem<String> item(String value, IconData icon, String text) => PopupMenuItem(
+    PopupMenuItem<String> item(String value, IconData icon, String text) =>
+        PopupMenuItem(
           value: value,
-          child: Row(children: [
-            Icon(icon, size: 20),
-            const SizedBox(width: 12),
-            Flexible(child: Text(text)),
-          ]),
+          child: Row(
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 12),
+              Flexible(child: Text(text)),
+            ],
+          ),
         );
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz),
@@ -625,11 +672,23 @@ class _HomeScreenState extends State<HomeScreen>
           item('import_notes', Icons.content_paste, 'Importer depuis Notes'),
           item('import_file', Icons.file_open_outlined, 'Importer un fichier'),
           const PopupMenuDivider(),
-          item('export_csv', Icons.table_chart_outlined, 'Exporter en CSV ($tab)'),
-          item('export_json', Icons.data_object, 'Exporter en JSON (toutes les données)'),
+          item(
+            'export_csv',
+            Icons.table_chart_outlined,
+            'Exporter en CSV ($tab)',
+          ),
+          item(
+            'export_json',
+            Icons.data_object,
+            'Exporter en JSON (toutes les données)',
+          ),
           const PopupMenuDivider(),
           item('manage_names', Icons.merge_type, 'Gérer les sites & runs'),
-          item('check_update', Icons.system_update_outlined, 'Rechercher une mise à jour'),
+          item(
+            'check_update',
+            Icons.system_update_outlined,
+            'Rechercher une mise à jour',
+          ),
         ];
       },
     );
@@ -679,7 +738,9 @@ class _HomeScreenState extends State<HomeScreen>
     final groups = <List<FlightEntry>>[];
     for (final f in flights) {
       final last = groups.isEmpty ? null : groups.last.first.date;
-      if (last != null && last.year == f.date.year && last.month == f.date.month) {
+      if (last != null &&
+          last.year == f.date.year &&
+          last.month == f.date.month) {
         groups.last.add(f);
       } else {
         groups.add([f]);
@@ -689,13 +750,13 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _clearFilters() => setState(() {
-        _filterSite = null;
-        _filterRun = null;
-        _filterWing = null;
-        _filterDateFrom = null;
-        _filterDateTo = null;
-        _filterHasComment = false;
-      });
+    _filterSite = null;
+    _filterRun = null;
+    _filterWing = null;
+    _filterDateFrom = null;
+    _filterDateTo = null;
+    _filterHasComment = false;
+  });
 
   Widget _buildFilterChips() {
     return SizedBox(
@@ -710,27 +771,38 @@ class _HomeScreenState extends State<HomeScreen>
             if (_filterRun != null)
               ('Run : $_filterRun', () => setState(() => _filterRun = null)),
             if (_filterWing != null)
-              ('Voile : $_filterWing', () => setState(() => _filterWing = null)),
+              (
+                'Voile : $_filterWing',
+                () => setState(() => _filterWing = null),
+              ),
             if (_filterDateFrom != null || _filterDateTo != null)
               (
                 _formatDateRange(),
                 () => setState(() {
-                      _filterDateFrom = null;
-                      _filterDateTo = null;
-                    })
+                  _filterDateFrom = null;
+                  _filterDateTo = null;
+                }),
               ),
             if (_filterHasComment)
-              ('Avec commentaire', () => setState(() => _filterHasComment = false)),
+              (
+                'Avec commentaire',
+                () => setState(() => _filterHasComment = false),
+              ),
           ])
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: InputChip(
                 label: Text(chip.$1),
                 onDeleted: chip.$2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
             ),
-          TextButton(onPressed: _clearFilters, child: const Text('Tout effacer')),
+          TextButton(
+            onPressed: _clearFilters,
+            child: const Text('Tout effacer'),
+          ),
         ],
       ),
     );
@@ -742,7 +814,10 @@ class _DisciplineSwitcher extends StatelessWidget {
   final TabController controller;
   final List<Discipline?> disciplines;
 
-  const _DisciplineSwitcher({required this.controller, required this.disciplines});
+  const _DisciplineSwitcher({
+    required this.controller,
+    required this.disciplines,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -763,14 +838,21 @@ class _DisciplineSwitcher extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(11),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 1),
+            ),
           ],
         ),
         splashBorderRadius: BorderRadius.circular(11),
         labelColor: selected?.color ?? Discipline.allColor,
         unselectedLabelColor: Colors.white.withValues(alpha: 0.9),
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-        unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
         labelPadding: const EdgeInsets.symmetric(horizontal: 4),
         tabs: [
           for (final d in disciplines)
@@ -783,7 +865,10 @@ class _DisciplineSwitcher extends StatelessWidget {
                     const SizedBox(width: 6),
                   ],
                   Flexible(
-                    child: Text(d?.label ?? 'Tout', overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      d?.label ?? 'Tout',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -804,7 +889,8 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = discipline?.color ?? Discipline.allColor;
-    int countOf(Iterable<FlightEntry> list) => list.fold<int>(0, (sum, f) => sum + f.count);
+    int countOf(Iterable<FlightEntry> list) =>
+        list.fold<int>(0, (sum, f) => sum + f.count);
     final now = DateTime.now();
     final total = countOf(flights);
     final thisYear = countOf(flights.where((f) => f.date.year == now.year));
@@ -825,7 +911,8 @@ class _SummaryCard extends StatelessWidget {
           ];
 
     final cs = Theme.of(context).colorScheme;
-    final accent = discipline?.on(context) ??
+    final accent =
+        discipline?.on(context) ??
         (Theme.of(context).brightness == Brightness.dark
             ? Color.lerp(base, Colors.white, 0.35)!
             : base);
@@ -839,16 +926,31 @@ class _SummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text('$total',
-                    style: TextStyle(
-                        color: accent, fontSize: 40, fontWeight: FontWeight.w800, height: 1)),
+                Text(
+                  '$total',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Text(total > 1 ? 'vols' : 'vol',
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant, fontSize: 17, fontWeight: FontWeight.w600)),
+                Text(
+                  total > 1 ? 'vols' : 'vol',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const Spacer(),
                 if (discipline != null)
-                  DisciplineIcon(discipline!, size: 34, color: accent.withValues(alpha: 0.3)),
+                  DisciplineIcon(
+                    discipline!,
+                    size: 34,
+                    color: accent.withValues(alpha: 0.3),
+                  ),
               ],
             ),
             const SizedBox(height: 14),
@@ -859,15 +961,25 @@ class _SummaryCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(value,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        Text(
+                          value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text(label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -898,10 +1010,8 @@ class _MonthSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final count = flights.fold<int>(0, (sum, f) => sum + f.count);
-    final headerStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: cs.onSurfaceVariant,
-          fontWeight: FontWeight.w700,
-        );
+    final headerStyle = Theme.of(context).textTheme.labelLarge
+        ?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700);
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: Column(
@@ -911,9 +1021,16 @@ class _MonthSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
             child: Row(
               children: [
-                Expanded(child: Text(formatMonthYear(flights.first.date), style: headerStyle)),
-                Text('$count vol${count > 1 ? 's' : ''}',
-                    style: headerStyle?.copyWith(fontWeight: FontWeight.w500)),
+                Expanded(
+                  child: Text(
+                    formatMonthYear(flights.first.date),
+                    style: headerStyle,
+                  ),
+                ),
+                Text(
+                  '$count vol${count > 1 ? 's' : ''}',
+                  style: headerStyle?.copyWith(fontWeight: FontWeight.w500),
+                ),
               ],
             ),
           ),
@@ -975,17 +1092,23 @@ class _FlightTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text.rich(
-                    TextSpan(children: [
-                      TextSpan(
-                        text: entry.site,
-                        style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      if (entry.run.isNotEmpty)
+                    TextSpan(
+                      children: [
                         TextSpan(
-                          text: '  ${entry.run}',
-                          style: text.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                          text: entry.site,
+                          style: text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                    ]),
+                        if (entry.run.isNotEmpty)
+                          TextSpan(
+                            text: '  ${entry.run}',
+                            style: text.bodyMedium?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -993,7 +1116,11 @@ class _FlightTile extends StatelessWidget {
                   Row(
                     children: [
                       if (showDiscipline) ...[
-                        DisciplineIcon(discipline, size: 14, color: discipline.on(context)),
+                        DisciplineIcon(
+                          discipline,
+                          size: 14,
+                          color: discipline.on(context),
+                        ),
                         const SizedBox(width: 4),
                       ],
                       Flexible(
@@ -1006,7 +1133,11 @@ class _FlightTile extends StatelessWidget {
                       ),
                       if (entry.comment.isNotEmpty) ...[
                         const SizedBox(width: 6),
-                        Icon(Icons.chat_bubble_outline, size: 13, color: cs.onSurfaceVariant),
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 13,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ],
                     ],
                   ),
@@ -1017,20 +1148,31 @@ class _FlightTile extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(numberLabel ?? '',
-                    style: text.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                Text(
+                  numberLabel ?? '',
+                  style: text.labelMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (entry.count > 1) ...[
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: discipline.color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('×${entry.count}',
-                        style: text.labelSmall?.copyWith(
-                            color: discipline.on(context), fontWeight: FontWeight.w700)),
+                    child: Text(
+                      '×${entry.count}',
+                      style: text.labelSmall?.copyWith(
+                        color: discipline.on(context),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -1061,11 +1203,23 @@ class _DateBadge extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('${date.day}',
-              style: TextStyle(
-                  color: color, fontSize: 18, fontWeight: FontWeight.w800, height: 1.1)),
-          Text(formatShortMonth(date),
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text(
+            '${date.day}',
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          Text(
+            formatShortMonth(date),
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1102,19 +1256,21 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             filtered ? 'Aucun vol ne correspond' : 'Aucun vol pour le moment',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
-            filtered
-                ? 'Essaie de retirer un filtre.'
-                : 'Ajoute ton premier vol avec « Nouveau vol », ou importe ton carnet depuis le menu ⋯.',
+            filtered ? 'Essaie de retirer un filtre.' : 'Ajoute ton premier vol avec « Nouveau vol », ou importe ton carnet depuis le menu ⋯.',
             textAlign: TextAlign.center,
             style: TextStyle(color: cs.onSurfaceVariant),
           ),
           if (filtered) ...[
             const SizedBox(height: 12),
-            TextButton(onPressed: onClearFilters, child: const Text('Effacer les filtres')),
+            TextButton(
+              onPressed: onClearFilters,
+              child: const Text('Effacer les filtres'),
+            ),
           ],
         ],
       ),

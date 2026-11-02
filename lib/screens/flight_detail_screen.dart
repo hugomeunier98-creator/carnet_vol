@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
+import '../widgets/page_colors.dart';
 import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../utils/date_format.dart';
@@ -141,73 +142,76 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     final e = _entry;
     final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: e.discipline.color,
-        title: Text(_numberLabel != null ? 'Vol $_numberLabel' : 'Vol'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Modifier',
-            onPressed: _editFlight,
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
-        children: [
-          _HeroCard(entry: e),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Section(
-                  icon: Icons.chat_bubble_outline,
-                  title: 'Commentaire',
-                  child: InkWell(
-                    onTap: _editFlight,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Text(
-                      e.comment.isNotEmpty
-                          ? e.comment
-                          : 'Aucun commentaire · toucher pour en ajouter',
-                      style: e.comment.isEmpty
-                          ? TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontStyle: FontStyle.italic,
-                            )
-                          : Theme.of(context).textTheme.bodyLarge,
+    return PageColors(
+      top: e.discipline.color,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: e.discipline.color,
+          title: Text(_numberLabel != null ? 'Vol $_numberLabel' : 'Vol'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Modifier',
+              onPressed: _editFlight,
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _HeroCard(entry: e),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Section(
+                    icon: Icons.chat_bubble_outline,
+                    title: 'Commentaire',
+                    child: InkWell(
+                      onTap: _editFlight,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Text(
+                        e.comment.isNotEmpty
+                            ? e.comment
+                            : 'Aucun commentaire · toucher pour en ajouter',
+                        style: e.comment.isEmpty
+                            ? TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              )
+                            : Theme.of(context).textTheme.bodyLarge,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _Section(
-                  icon: Icons.place_outlined,
-                  title: 'Localisation',
-                  child: _loadingLocation
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      : _location == null || !_location!.hasAny
-                      ? _NoLocation(onEdit: _editLocation)
-                      : LocationMapView(
-                          location: _location!,
-                          onEdit: _editLocation,
-                        ),
-                ),
-                const SizedBox(height: 12),
-                _Section(
-                  icon: Icons.photo_library_outlined,
-                  title: 'Photos & vidéos',
-                  child: PhotosSection(date: e.date),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  _Section(
+                    icon: Icons.place_outlined,
+                    title: 'Localisation',
+                    child: _loadingLocation
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        : _location == null || !_location!.hasAny
+                        ? _NoLocation(onEdit: _editLocation)
+                        : LocationMapView(
+                            location: _location!,
+                            onEdit: _editLocation,
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  _Section(
+                    icon: Icons.photo_library_outlined,
+                    title: 'Photos & vidéos',
+                    child: PhotosSection(date: e.date),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -464,11 +468,14 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
     final picked = await Navigator.of(context).push<PickedLocation>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => LocationPickerScreen(
-          title: title,
-          takeoff: parseLatLng(_takeoff.text),
-          landing: parseLatLng(_landing.text),
-          fallbackCenter: widget.fallbackCenter,
+        builder: (_) => PageColors(
+          top: Discipline.allColor,
+          child: LocationPickerScreen(
+            title: title,
+            takeoff: parseLatLng(_takeoff.text),
+            landing: parseLatLng(_landing.text),
+            fallbackCenter: widget.fallbackCenter,
+          ),
         ),
       ),
     );

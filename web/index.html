@@ -37,9 +37,39 @@
     Stops iOS Safari's own edge-swipe-back gesture from intercepting a
     horizontal swipe before the app's own swipe-to-go-back gesture gets it.
   -->
+  <!--
+    The page behind the app shows in the status bar area (iOS tints and
+    fades it from the page background) and below the app, around the home
+    indicator. It is painted in the app's colours: the top bar colour above,
+    the screen background below. The app updates them per screen through
+    carnetVolSetPageColors (lib/widgets/page_colors.dart).
+  -->
   <style>
     html, body { overscroll-behavior-x: none; }
+    html, body {
+      background: linear-gradient(to bottom, #D9480F 0 50%, #f2f3fa 50% 100%);
+      background-color: #f2f3fa;
+    }
+    @media (prefers-color-scheme: dark) {
+      html, body {
+        background: linear-gradient(to bottom, #D9480F 0 50%, #191c20 50% 100%);
+        background-color: #191c20;
+      }
+    }
   </style>
+  <meta name="theme-color" content="#D9480F">
+  <script>
+    window.carnetVolSetPageColors = function (top, bottom) {
+      var background = 'linear-gradient(to bottom, ' + top + ' 0 50%, ' + bottom + ' 50% 100%)';
+      [document.documentElement, document.body].forEach(function (el) {
+        if (!el) return;
+        el.style.background = background;
+        el.style.backgroundColor = bottom;
+      });
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = top;
+    };
+  </script>
 
   <!--
     Full-screen layout on iPhone: the status bar is translucent (no band at
@@ -66,9 +96,17 @@
           'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)';
         document.documentElement.appendChild(probe);
         var style = getComputedStyle(probe);
-        var insets = [parseFloat(style.paddingTop) || 0, parseFloat(style.paddingBottom) || 0];
+        var top = parseFloat(style.paddingTop) || 0;
+        var bottom = parseFloat(style.paddingBottom) || 0;
         probe.remove();
-        return insets;
+        // Some iOS versions stop the page (and so the app) above the home
+        // indicator anyway: only the part of the inset the app actually
+        // covers needs keeping clear.
+        if (window.navigator.standalone) {
+          var gap = window.screen.height - document.documentElement.clientHeight;
+          bottom = Math.max(0, bottom - Math.max(0, gap));
+        }
+        return [top, bottom];
       };
     })();
   </script>
