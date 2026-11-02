@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen>
     final sites = results[1] as List<String>;
     final runs = results[2] as List<String>;
     final wings = results[3] as List<String>;
-    flights.sort((a, b) => b.date.compareTo(a.date));
+    flights.sort(compareNewestFirst);
     if (!mounted) return;
     setState(() {
       _flights = flights;
@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _flights.add(result);
       _rememberReferences(result);
-      _flights.sort((a, b) => b.date.compareTo(a.date));
+      _flights.sort(compareNewestFirst);
     });
     await _persist();
   }
@@ -257,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen>
               final idx = _flights.indexWhere((f) => f.id == updated.id);
               if (idx >= 0) _flights[idx] = updated;
               _rememberReferences(updated);
-              _flights.sort((a, b) => b.date.compareTo(a.date));
+              _flights.sort(compareNewestFirst);
             });
             await _persist();
           },
@@ -325,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen>
         }
         _rememberReferences(entry);
       }
-      _flights.sort((a, b) => b.date.compareTo(a.date));
+      _flights.sort(compareNewestFirst);
     });
     _persist();
     if (mounted) {

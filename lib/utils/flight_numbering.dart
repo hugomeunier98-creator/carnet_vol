@@ -19,15 +19,7 @@ Map<String, String> computeFlightNumberLabels(List<FlightEntry> flights) {
 }
 
 Map<String, String> _numberChronologically(Iterable<FlightEntry> flights) {
-  final sorted = List<FlightEntry>.of(flights)
-    ..sort((a, b) {
-      final byDate = a.date.compareTo(b.date);
-      if (byDate != 0) return byDate;
-      final aNum = int.tryParse(a.sourceNumber ?? '');
-      final bNum = int.tryParse(b.sourceNumber ?? '');
-      if (aNum != null && bNum != null && aNum != bNum) return aNum.compareTo(bNum);
-      return a.id.compareTo(b.id);
-    });
+  final sorted = List<FlightEntry>.of(flights)..sort(compareChronologically);
 
   final labels = <String, String>{};
   var next = 1;
@@ -37,3 +29,19 @@ Map<String, String> _numberChronologically(Iterable<FlightEntry> flights) {
   }
   return labels;
 }
+
+/// Oldest-first order used for numbering. Same-day flights go by their
+/// imported number, then those entered without one, then by id - a total
+/// order, so sorting the list with it (reversed) keeps numbers monotonic.
+int compareChronologically(FlightEntry a, FlightEntry b) {
+  final byDate = a.date.compareTo(b.date);
+  if (byDate != 0) return byDate;
+  final aNum = int.tryParse(a.sourceNumber ?? '');
+  final bNum = int.tryParse(b.sourceNumber ?? '');
+  if (aNum != null && bNum != null && aNum != bNum) return aNum.compareTo(bNum);
+  if ((aNum == null) != (bNum == null)) return aNum == null ? 1 : -1;
+  return a.id.compareTo(b.id);
+}
+
+/// Newest-first order of the flight list: the exact reverse of numbering.
+int compareNewestFirst(FlightEntry a, FlightEntry b) => compareChronologically(b, a);

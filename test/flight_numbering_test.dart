@@ -17,6 +17,7 @@ FlightEntry _flight(String id, DateTime date,
 }
 
 void main() {
+  _sameDayTests();
   test('numbers stay chronological even when a later flight is added first', () {
     final flights = [
       _flight('a', DateTime(2026, 1, 10)),
@@ -64,5 +65,30 @@ void main() {
     expect(labels['s2'], '#2 - #3');
     expect(labels['p1'], '#1');
     expect(labels['p2'], '#2');
+  });
+}
+
+void _expectDecreasingWhenSortedNewestFirst(List<FlightEntry> flights) {
+  final labels = computeFlightNumberLabels(flights);
+  final sorted = List<FlightEntry>.of(flights)..sort(compareNewestFirst);
+  final starts = sorted
+      .map((f) => int.parse(labels[f.id]!.substring(1).split(' ').first))
+      .toList();
+  for (var i = 1; i < starts.length; i++) {
+    expect(starts[i] < starts[i - 1], isTrue, reason: 'list: $starts');
+  }
+}
+
+void _sameDayTests() {
+  test('same-day flights are listed with decreasing numbers', () {
+    final day = DateTime(2024, 6, 12);
+    _expectDecreasingWhenSortedNewestFirst([
+      // Imported order (ascending), as after a Notes import.
+      _flight('a', day, sourceNumber: '1'),
+      _flight('b', day, sourceNumber: '2', count: 2),
+      _flight('c', day, sourceNumber: '4'),
+      _flight('d', day), // added by hand the same day
+      _flight('e', DateTime(2024, 6, 13), sourceNumber: '5'),
+    ]);
   });
 }
