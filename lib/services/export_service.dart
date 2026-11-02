@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 
 class ExportService {
@@ -14,7 +15,7 @@ class ExportService {
 
   String toCsv(List<FlightEntry> flights) {
     final buffer = StringBuffer();
-    buffer.writeln('numero,date,site,run,denivele_duree,voile,nb_vols,commentaire');
+    buffer.writeln('numero,date,site,run,denivele_duree,voile,nb_vols,commentaire,discipline');
     for (final f in flights) {
       buffer.writeln([
         f.sourceNumber ?? '',
@@ -25,6 +26,7 @@ class ExportService {
         _escape(f.wing),
         f.count,
         _escape(f.comment),
+        f.discipline.name,
       ].join(','));
     }
     return buffer.toString();
@@ -45,26 +47,28 @@ class ExportService {
     await file.saveTo(location.path);
   }
 
-  Future<List<FlightEntry>?> importFromFile() async {
+  /// Flights without a discipline in the file get [fallbackDiscipline].
+  Future<List<FlightEntry>?> importFromFile(Discipline fallbackDiscipline) async {
     const jsonType = XTypeGroup(label: 'JSON', extensions: ['json']);
     const csvType = XTypeGroup(label: 'CSV', extensions: ['csv']);
     final file = await openFile(acceptedTypeGroups: [jsonType, csvType]);
     if (file == null) return null;
     final content = await file.readAsString();
     if (file.name.toLowerCase().endsWith('.csv')) {
-      return _parseCsv(content);
+      return parseCsv(content, fallbackDiscipline);
     }
-    return _parseJson(content);
+    return _parseJson(content, fallbackDiscipline);
   }
 
-  List<FlightEntry> _parseJson(String content) {
+  List<FlightEntry> _parseJson(String content, Discipline fallbackDiscipline) {
     final list = jsonDecode(content) as List<dynamic>;
     return list
-        .map((e) => FlightEntry.fromJson(e as Map<String, dynamic>))
+        .map((e) => FlightEntry.fromJson(e as Map<String, dynamic>,
+            fallbackDiscipline: fallbackDiscipline))
         .toList();
   }
 
-  List<FlightEntry> _parseCsv(String content) {
+  List<FlightEntry> parseCsv(String content, Discipline fallbackDiscipline) {
     final lines = const LineSplitter()
         .convert(content)
         .where((l) => l.trim().isNotEmpty)
@@ -84,6 +88,8 @@ class ExportService {
         wing: fields[5],
         count: fields.length > 6 ? (int.tryParse(fields[6]) ?? 1) : 1,
         comment: fields.length > 7 ? fields[7] : '',
+        discipline: (fields.length > 8 ? Discipline.tryParse(fields[8]) : null) ??
+            fallbackDiscipline,
       ));
     }
     return result;
@@ -126,7 +132,7 @@ class ExportService {
   /// number column may hold a range ("6-8" = 3 grouped identical flights)
   /// and the date column may be left blank to mean "same date as the row
   /// above".
-  List<FlightEntry> parseNotesTable(String raw) {
+  List<FlightEntry> parseNotesTable(String raw, Discipline discipline) {
     final result = <FlightEntry>[];
     DateTime? lastDate;
     const uuid = Uuid();
@@ -169,6 +175,7 @@ class ExportService {
 
       result.add(FlightEntry(
         id: uuid.v4(),
+        discipline: discipline,
         date: date,
         site: fields.length > 2 ? fields[2] : '',
         run: fields.length > 3 ? fields[3] : '',

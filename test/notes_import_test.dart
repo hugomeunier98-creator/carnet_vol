@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:carnet_vol/models/discipline.dart';
 import 'package:carnet_vol/services/export_service.dart';
 
 const sample = '''
@@ -83,7 +84,7 @@ Nº	Date	Lieu	Run	Dénivelé / Durée	Voile
 
 void main() {
   test('parses the real Notes speedflying logbook export', () {
-    final result = ExportService().parseNotesTable(sample);
+    final result = ExportService().parseNotesTable(sample, Discipline.speedflying);
 
     // 73 table rows; Nº 164 has no corresponding row in the source note
     // (a genuine gap in the logbook), so 215 numbered flights become 214
@@ -125,5 +126,10 @@ void main() {
     final row169 = result.firstWhere((f) => f.sourceNumber == '169');
     expect(row169.verticalOrDuration, '1h');
     expect(row169.verticalMeters, null);
+  });
+
+  test('tags every pasted flight with the chosen discipline', () {
+    final result = ExportService().parseNotesTable(sample, Discipline.parapente);
+    expect(result.every((f) => f.discipline == Discipline.parapente), isTrue);
   });
 }

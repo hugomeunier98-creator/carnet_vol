@@ -1,5 +1,8 @@
+import 'discipline.dart';
+
 class FlightEntry {
   final String id;
+  final Discipline discipline;
   final DateTime date;
   final String site;
   final String run;
@@ -11,6 +14,7 @@ class FlightEntry {
 
   const FlightEntry({
     required this.id,
+    this.discipline = Discipline.speedflying,
     required this.date,
     required this.site,
     this.run = '',
@@ -40,6 +44,7 @@ class FlightEntry {
   }
 
   FlightEntry copyWith({
+    Discipline? discipline,
     DateTime? date,
     String? site,
     String? run,
@@ -51,6 +56,7 @@ class FlightEntry {
   }) {
     return FlightEntry(
       id: id,
+      discipline: discipline ?? this.discipline,
       date: date ?? this.date,
       site: site ?? this.site,
       run: run ?? this.run,
@@ -64,6 +70,7 @@ class FlightEntry {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'discipline': discipline.name,
         'date': date.toIso8601String(),
         'site': site,
         'run': run,
@@ -74,8 +81,16 @@ class FlightEntry {
         'sourceNumber': sourceNumber,
       };
 
-  factory FlightEntry.fromJson(Map<String, dynamic> json) => FlightEntry(
+  /// [fallbackDiscipline] applies when the JSON has no discipline (data
+  /// saved or exported before disciplines existed).
+  factory FlightEntry.fromJson(
+    Map<String, dynamic> json, {
+    Discipline fallbackDiscipline = Discipline.speedflying,
+  }) =>
+      FlightEntry(
         id: json['id'] as String,
+        discipline: Discipline.tryParse(json['discipline'] as String?) ??
+            fallbackDiscipline,
         date: DateTime.parse(json['date'] as String),
         site: json['site'] as String,
         run: (json['run'] as String?) ?? '',

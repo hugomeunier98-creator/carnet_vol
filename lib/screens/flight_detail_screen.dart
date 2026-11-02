@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../models/run_location.dart';
 import '../services/storage_service.dart';
@@ -15,7 +16,7 @@ class FlightDetailScreen extends StatefulWidget {
   final List<FlightEntry> allFlights;
   final List<String> knownSites;
   final List<String> knownRuns;
-  final List<String> knownWings;
+  final Map<Discipline, List<String>> knownWings;
   final ValueChanged<FlightEntry> onUpdated;
   final VoidCallback onDeleted;
 
@@ -225,6 +226,18 @@ class _HeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(entry.wing, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: onColor)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(entry.discipline.icon, size: 18, color: entry.discipline.color),
+              const SizedBox(width: 6),
+              Text(entry.discipline.label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(color: entry.discipline.color, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ],
       ),
     );

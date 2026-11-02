@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../services/app_update.dart';
 import '../services/export_service.dart';
@@ -17,7 +18,18 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  /// Tabs: one per discipline, then "Tout" (every flight, by date).
+  static const _tabDisciplines = <Discipline?>[...Discipline.values, null];
+
+  late final TabController _tabController =
+      TabController(length: _tabDisciplines.length, vsync: this)
+        ..addListener(() => setState(() {}));
+
+  /// Discipline of the visible tab; null on "Tout".
+  Discipline? get _tabDiscipline => _tabDisciplines[_tabController.index];
+
   final _storage = StorageService();
   final _export = ExportService();
 
@@ -44,8 +56,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _filterDateTo != null ||
       _filterHasComment;
 
-  List<FlightEntry> get _filteredFlights {
+  List<FlightEntry> _filteredFlights(Discipline? discipline) {
     return _flights.where((f) {
+      if (discipline != null && f.discipline != discipline) return false;
       if (_filterSite != null && f.site != _filterSite) return false;
       if (_filterRun != null && f.run != _filterRun) return false;
       if (_filterWing != null && f.wing != _filterWing) return false;
@@ -66,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -167,13 +181,56 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Wing suggestions per discipline: the wings already flown in it, or
+  /// every known wing while that discipline has no flight yet.
+  Map<Discipline, List<String>> get _wingsByDiscipline => {
+        for (final d in Discipline.values)
+          d: () {
+            final used = _flights
+                .where((f) => f.discipline == d && f.wing.isNotEmpty)
+                .map((f) => f.wing)
+                .toSet()
+                .toList()
+              ..sort();
+            return used.isEmpty ? _wings : used;
+          }(),
+      };
+
+  /// The visible tab's discipline, or asks for one on "Tout".
+  Future<Discipline?> _resolveDiscipline(String title) async {
+    final current = _tabDiscipline;
+    if (current != null) return current;
+    return showModalBottomSheet<Discipline>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ),
+            for (final d in Discipline.values)
+              ListTile(
+                leading: Icon(d.icon, color: d.color),
+                title: Text(d.label),
+                onTap: () => Navigator.of(context).pop(d),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _createFlight() async {
+    final discipline = await _resolveDiscipline('Nouveau vol');
+    if (discipline == null || !mounted) return;
     final result = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
         builder: (_) => FlightFormScreen(
+          discipline: discipline,
           knownSites: _sites,
           knownRuns: _runs,
-          knownWings: _wings,
+          knownWings: _wingsByDiscipline,
         ),
       ),
     );
@@ -194,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           allFlights: _flights,
           knownSites: _sites,
           knownRuns: _runs,
-          knownWings: _wings,
+          knownWings: _wingsByDiscipline,
           onUpdated: (updated) async {
             setState(() {
               final idx = _flights.indexWhere((f) => f.id == updated.id);
@@ -213,22 +270,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Exports the visible tab's flights ("Tout": every flight).
   Future<void> _handleExport(String format) async {
+    final discipline = _tabDiscipline;
+    final flights = discipline == null
+        ? _flights
+        : _flights.where((f) => f.discipline == discipline).toList();
     final content =
-        format == 'csv' ? _export.toCsv(_flights) : _export.toJson(_flights);
-    final name = format == 'csv' ? 'carnet_de_vol.csv' : 'carnet_de_vol.json';
-    await _export.exportToFile(content, name);
+        format == 'csv' ? _export.toCsv(flights) : _export.toJson(flights);
+    final suffix = discipline == null ? '' : '_${discipline.name}';
+    await _export.exportToFile(content, 'carnet_de_vol$suffix.$format');
   }
 
   Future<void> _handleImportFile() async {
-    final imported = await _export.importFromFile();
+    final discipline = await _resolveDiscipline(
+        'Discipline des vols importés (si le fichier ne la précise pas)');
+    if (discipline == null) return;
+    final imported = await _export.importFromFile(discipline);
     if (imported == null) return;
     _mergeImported(imported);
   }
 
   Future<void> _handleImportFromNotes() async {
+    final discipline = await _resolveDiscipline('Discipline des vols importés');
+    if (discipline == null || !mounted) return;
     final imported = await Navigator.of(context).push<List<FlightEntry>>(
-      MaterialPageRoute(builder: (_) => const NotesImportScreen()),
+      MaterialPageRoute(builder: (_) => NotesImportScreen(discipline: discipline)),
     );
     if (imported == null) return;
     _mergeImported(imported);
@@ -245,8 +312,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _mergeImported(List<FlightEntry> imported) {
     setState(() {
       for (final entry in imported) {
+        // Numbers are per discipline: parapente #12 is not speedflying #12.
         final idx = entry.sourceNumber != null
-            ? _flights.indexWhere((f) => f.sourceNumber == entry.sourceNumber)
+            ? _flights.indexWhere((f) =>
+                f.discipline == entry.discipline &&
+                f.sourceNumber == entry.sourceNumber)
             : _flights.indexWhere((f) => f.id == entry.id);
         if (idx >= 0) {
           _flights[idx] = entry;
@@ -450,14 +520,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final filtered = _filteredFlights;
     final numberLabels = _numberLabels;
-    final totalFlights = filtered.fold<int>(0, (sum, f) => sum + f.count);
-    final siteCount = filtered.map((f) => f.site).toSet().length;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Carnet de vol'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            for (final d in _tabDisciplines)
+              Tab(
+                height: 56,
+                icon: Icon(d?.icon ?? Icons.list_alt, size: 20),
+                text: d?.label ?? 'Tout',
+              ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Filtrer',
@@ -478,105 +556,136 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (value == 'manage_names') _handleManageNames();
               if (value == 'check_update') _handleCheckUpdate();
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                  value: 'import_notes',
-                  child: Text('Importer depuis Notes (coller)')),
-              PopupMenuItem(value: 'import_file', child: Text('Importer un fichier')),
-              PopupMenuDivider(),
-              PopupMenuItem(value: 'export_csv', child: Text('Exporter en CSV')),
-              PopupMenuItem(value: 'export_json', child: Text('Exporter en JSON')),
-              PopupMenuDivider(),
-              PopupMenuItem(
-                  value: 'manage_names',
-                  child: Text('Gérer les sites & runs (fusionner)')),
-              PopupMenuDivider(),
-              PopupMenuItem(
-                  value: 'check_update',
-                  child: Text('Rechercher une mise à jour')),
-            ],
+            itemBuilder: (context) {
+              final tab = _tabDiscipline?.label ?? 'tous les vols';
+              return [
+                const PopupMenuItem(
+                    value: 'import_notes',
+                    child: Text('Importer depuis Notes (coller)')),
+                const PopupMenuItem(
+                    value: 'import_file', child: Text('Importer un fichier')),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                    value: 'export_csv', child: Text('Exporter en CSV ($tab)')),
+                PopupMenuItem(
+                    value: 'export_json', child: Text('Exporter en JSON ($tab)')),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                    value: 'manage_names',
+                    child: Text('Gérer les sites & runs (fusionner)')),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                    value: 'check_update',
+                    child: Text('Rechercher une mise à jour')),
+              ];
+            },
           ),
         ],
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _StatItem(label: 'Vols', value: '$totalFlights'),
-                _StatItem(label: 'Sites', value: '$siteCount'),
-              ],
-            ),
-          ),
-          if (_hasActiveFilters)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  if (_filterSite != null)
-                    InputChip(
-                      label: Text('Site : $_filterSite'),
-                      onDeleted: () => setState(() => _filterSite = null),
-                    ),
-                  if (_filterRun != null)
-                    InputChip(
-                      label: Text('Run : $_filterRun'),
-                      onDeleted: () => setState(() => _filterRun = null),
-                    ),
-                  if (_filterWing != null)
-                    InputChip(
-                      label: Text('Voile : $_filterWing'),
-                      onDeleted: () => setState(() => _filterWing = null),
-                    ),
-                  if (_filterDateFrom != null || _filterDateTo != null)
-                    InputChip(
-                      label: Text('Date : ${_formatDateRange()}'),
-                      onDeleted: () => setState(() {
-                        _filterDateFrom = null;
-                        _filterDateTo = null;
-                      }),
-                    ),
-                  if (_filterHasComment)
-                    InputChip(
-                      label: const Text('Avec commentaire'),
-                      onDeleted: () => setState(() => _filterHasComment = false),
-                    ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: filtered.isEmpty
-                ? _EmptyState(filtered: _hasActiveFilters)
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 80),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final f = filtered[index];
-                      return _FlightRow(
-                        entry: f,
-                        numberLabel: numberLabels[f.id],
-                        onTap: () => _openDetail(f),
-                      );
-                    },
-                  ),
-          ),
+          for (final d in _tabDisciplines) _buildTab(d, numberLabels),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createFlight,
+        backgroundColor: _tabDiscipline?.color,
+        foregroundColor: _tabDiscipline == null ? null : Colors.white,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  /// One tab's content; [discipline] is null for "Tout".
+  Widget _buildTab(Discipline? discipline, Map<String, String> numberLabels) {
+    final filtered = _filteredFlights(discipline);
+    int countOf(Iterable<FlightEntry> flights) =>
+        flights.fold<int>(0, (sum, f) => sum + f.count);
+    final siteCount = filtered.map((f) => f.site).toSet().length;
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _StatItem(label: 'Vols', value: '${countOf(filtered)}'),
+              if (discipline == null)
+                for (final d in Discipline.values)
+                  _StatItem(
+                    label: d.label,
+                    value: '${countOf(filtered.where((f) => f.discipline == d))}',
+                  )
+              else
+                _StatItem(label: 'Sites', value: '$siteCount'),
+            ],
+          ),
+        ),
+        if (_hasActiveFilters)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (_filterSite != null)
+                  InputChip(
+                    label: Text('Site : $_filterSite'),
+                    onDeleted: () => setState(() => _filterSite = null),
+                  ),
+                if (_filterRun != null)
+                  InputChip(
+                    label: Text('Run : $_filterRun'),
+                    onDeleted: () => setState(() => _filterRun = null),
+                  ),
+                if (_filterWing != null)
+                  InputChip(
+                    label: Text('Voile : $_filterWing'),
+                    onDeleted: () => setState(() => _filterWing = null),
+                  ),
+                if (_filterDateFrom != null || _filterDateTo != null)
+                  InputChip(
+                    label: Text('Date : ${_formatDateRange()}'),
+                    onDeleted: () => setState(() {
+                      _filterDateFrom = null;
+                      _filterDateTo = null;
+                    }),
+                  ),
+                if (_filterHasComment)
+                  InputChip(
+                    label: const Text('Avec commentaire'),
+                    onDeleted: () => setState(() => _filterHasComment = false),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: filtered.isEmpty
+              ? _EmptyState(filtered: _hasActiveFilters)
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 80),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final f = filtered[index];
+                    return _FlightRow(
+                      entry: f,
+                      numberLabel: numberLabels[f.id],
+                      showDiscipline: discipline == null,
+                      onTap: () => _openDetail(f),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
@@ -639,7 +748,16 @@ class _FlightRow extends StatelessWidget {
   final String? numberLabel;
   final VoidCallback onTap;
 
-  const _FlightRow({required this.entry, required this.numberLabel, required this.onTap});
+  /// On "Tout", marks the discipline with its colour and icon so the two
+  /// kinds of flights stay distinct within the same list.
+  final bool showDiscipline;
+
+  const _FlightRow({
+    required this.entry,
+    required this.numberLabel,
+    required this.onTap,
+    this.showDiscipline = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -649,18 +767,41 @@ class _FlightRow extends StatelessWidget {
     final location =
         entry.run.isNotEmpty ? '${entry.site} · ${entry.run}' : entry.site;
     final details = entry.wing;
+    final discipline = entry.discipline;
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
-        child: Padding(
+        child: Container(
+          decoration: showDiscipline
+              ? BoxDecoration(
+                  border: Border(left: BorderSide(color: discipline.color, width: 5)),
+                )
+              : null,
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               SizedBox(
                 width: 56,
-                child: Text(
+                child: showDiscipline
+                    ? Column(
+                        children: [
+                          Icon(discipline.icon, size: 18, color: discipline.color),
+                          Text(
+                            numberLabel ?? '',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: discipline.color),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      )
+                    : Text(
                   numberLabel ?? '',
                   style: Theme.of(context)
                       .textTheme
@@ -672,7 +813,7 @@ class _FlightRow extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 52,
+                width: 60,
                 child: Text(dateStr,
                     style: Theme.of(context).textTheme.bodySmall,
                     textAlign: TextAlign.center,

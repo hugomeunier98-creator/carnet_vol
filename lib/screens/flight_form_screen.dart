@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 
 class FlightFormScreen extends StatefulWidget {
   final FlightEntry? existing;
+
+  /// Discipline of a new flight; an edited flight starts on its own.
+  final Discipline discipline;
   final List<String> knownSites;
   final List<String> knownRuns;
-  final List<String> knownWings;
+
+  /// Wing suggestions, per discipline.
+  final Map<Discipline, List<String>> knownWings;
 
   const FlightFormScreen({
     super.key,
     this.existing,
+    this.discipline = Discipline.speedflying,
     required this.knownSites,
     required this.knownRuns,
     required this.knownWings,
@@ -24,6 +31,7 @@ class FlightFormScreen extends StatefulWidget {
 class _FlightFormScreenState extends State<FlightFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late DateTime _date;
+  late Discipline _discipline;
   late TextEditingController _siteController;
   late TextEditingController _runController;
   late TextEditingController _verticalController;
@@ -36,6 +44,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     super.initState();
     final e = widget.existing;
     _date = e?.date ?? DateTime.now();
+    _discipline = e?.discipline ?? widget.discipline;
     _siteController = TextEditingController(text: e?.site ?? '');
     _runController = TextEditingController(text: e?.run ?? '');
     _verticalController = TextEditingController(text: e?.verticalOrDuration ?? '');
@@ -68,6 +77,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     final entry = FlightEntry(
       id: widget.existing?.id ?? const Uuid().v4(),
+      discipline: _discipline,
       date: _date,
       site: _siteController.text.trim(),
       run: _runController.text.trim(),
@@ -81,6 +91,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
   }
 
   Widget _autocompleteField({
+    Key? key,
     required String label,
     required IconData icon,
     required TextEditingController controller,
@@ -88,6 +99,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     bool required = false,
   }) {
     return Autocomplete<String>(
+      key: key,
       optionsBuilder: (v) {
         if (v.text.isEmpty) return options;
         return options.where((s) => s.toLowerCase().contains(v.text.toLowerCase()));
@@ -119,6 +131,15 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            SegmentedButton<Discipline>(
+              segments: [
+                for (final d in Discipline.values)
+                  ButtonSegment(value: d, label: Text(d.label), icon: Icon(d.icon)),
+              ],
+              selected: {_discipline},
+              onSelectionChanged: (s) => setState(() => _discipline = s.single),
+            ),
+            const SizedBox(height: 16),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
@@ -148,10 +169,12 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
             ),
             const SizedBox(height: 16),
             _autocompleteField(
+              // Keyed so the suggestions follow a change of discipline.
+              key: ValueKey(_discipline),
               label: 'Voile',
               icon: Icons.paragliding_outlined,
               controller: _wingController,
-              options: widget.knownWings,
+              options: widget.knownWings[_discipline] ?? const [],
               required: true,
             ),
             const SizedBox(height: 16),

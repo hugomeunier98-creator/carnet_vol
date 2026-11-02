@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:carnet_vol/models/discipline.dart';
 import 'package:carnet_vol/models/flight_entry.dart';
 import 'package:carnet_vol/utils/flight_numbering.dart';
 
-FlightEntry _flight(String id, DateTime date, {int count = 1, String? sourceNumber}) {
+FlightEntry _flight(String id, DateTime date,
+    {int count = 1, String? sourceNumber, Discipline discipline = Discipline.speedflying}) {
   return FlightEntry(
     id: id,
+    discipline: discipline,
     date: date,
     site: 'Site',
     wing: 'Wing',
@@ -47,5 +50,19 @@ void main() {
     final labels = computeFlightNumberLabels(flights);
     expect(labels['early'], '#1');
     expect(labels['late'], '#2');
+  });
+
+  test('each discipline has its own counter', () {
+    final flights = [
+      _flight('s1', DateTime(2026, 1, 10)),
+      _flight('p1', DateTime(2026, 1, 12), discipline: Discipline.parapente),
+      _flight('s2', DateTime(2026, 2, 1), count: 2),
+      _flight('p2', DateTime(2026, 3, 1), discipline: Discipline.parapente),
+    ];
+    final labels = computeFlightNumberLabels(flights);
+    expect(labels['s1'], '#1');
+    expect(labels['s2'], '#2 - #3');
+    expect(labels['p1'], '#1');
+    expect(labels['p2'], '#2');
   });
 }

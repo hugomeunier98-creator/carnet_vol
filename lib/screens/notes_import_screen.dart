@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../services/export_service.dart';
 
 class NotesImportScreen extends StatefulWidget {
-  const NotesImportScreen({super.key});
+  final Discipline discipline;
+
+  const NotesImportScreen({super.key, required this.discipline});
 
   @override
   State<NotesImportScreen> createState() => _NotesImportScreenState();
@@ -16,14 +19,14 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
   List<FlightEntry>? _preview;
 
   void _parse() {
-    setState(() => _preview = _export.parseNotesTable(_controller.text));
+    setState(() => _preview = _export.parseNotesTable(_controller.text, widget.discipline));
   }
 
   @override
   Widget build(BuildContext context) {
     final preview = _preview;
     return Scaffold(
-      appBar: AppBar(title: const Text('Importer depuis Notes')),
+      appBar: AppBar(title: Text('Importer depuis Notes · ${widget.discipline.label}')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
