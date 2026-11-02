@@ -22,7 +22,9 @@
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f1f3fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191c20" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-title" content="Carnet de vol">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -63,12 +65,12 @@
   <!--
     Update check. GitHub Pages lets browsers cache every file for 10 minutes,
     so a plain reload can keep serving the old build. scripts/deploy.sh
-    replaces 20261102-1804-ee83fbb below and publishes build.json (the live build id
+    replaces 20261102-1818-e49ec55 below and publishes build.json (the live build id
     plus the list of its files). When they differ, the new files are
     re-downloaded into the HTTP cache before reloading.
   -->
   <script>
-    window.carnetVolBuildId = '20261102-1804-ee83fbb';
+    window.carnetVolBuildId = '20261102-1818-e49ec55';
     (function () {
       var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
 
