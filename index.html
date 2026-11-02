@@ -51,6 +51,13 @@
         registrations.forEach((registration) => registration.unregister());
       });
     }
+
+    // Photos/videos are no longer stored in the app (they are looked up in
+    // the Photos library by date instead): free the space used by the old
+    // in-app media database.
+    if ('indexedDB' in window) {
+      indexedDB.deleteDatabase('carnet_vol_media');
+    }
   </script>
 </head>
 <body>
