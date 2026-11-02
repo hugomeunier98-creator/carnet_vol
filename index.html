@@ -59,6 +59,54 @@
       indexedDB.deleteDatabase('carnet_vol_media');
     }
   </script>
+
+  <!--
+    Update check. GitHub Pages lets browsers cache every file for 10 minutes,
+    so a plain reload can keep serving the old build. scripts/deploy.sh
+    replaces 20261102-1338-d7e76d7 below and publishes build.json (the live build id
+    plus the list of its files). When they differ, the new files are
+    re-downloaded into the HTTP cache before reloading.
+  -->
+  <script>
+    window.carnetVolBuildId = '20261102-1338-d7e76d7';
+    (function () {
+      var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
+
+      function fetchLatest() {
+        if (!stamped) return Promise.resolve(null);
+        return fetch('build.json?t=' + Date.now(), { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; });
+      }
+
+      function applyUpdate(build) {
+        var files = ['./', 'index.html'].concat((build && build.files) || []);
+        return Promise.all(files.map(function (f) {
+          return fetch(f, { cache: 'reload' }).catch(function () {});
+        })).then(function () { location.reload(); });
+      }
+
+      // Resolves to the live build id, or null when it can't be checked
+      // (offline, or a local dev build that was never stamped).
+      window.carnetVolFetchLatestBuild = function () {
+        return fetchLatest().then(function (b) { return b ? b.buildId : null; });
+      };
+
+      window.carnetVolApplyUpdate = function () {
+        return fetchLatest().then(applyUpdate);
+      };
+
+      // On launch, update straight away. The session flag stops a reload
+      // loop if the CDN briefly still serves the previous index.html.
+      fetchLatest().then(function (build) {
+        if (!build || build.buildId === window.carnetVolBuildId) return;
+        var key = 'carnetVolUpdateTried';
+        if (sessionStorage.getItem(key) === build.buildId) return;
+        sessionStorage.setItem(key, build.buildId);
+        applyUpdate(build);
+      });
+    })();
+  </script>
 </head>
 <body>
   <!--
