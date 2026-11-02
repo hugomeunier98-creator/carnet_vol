@@ -32,9 +32,9 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              "Colle ici le tableau copié depuis ta note iCloud "
-              '(colonnes : Nº, Date, Lieu, Run, Dénivelé/Durée, Voile).',
+            Text(
+              'Colle ici le tableau copié depuis ta note iCloud, ligne '
+              "d'en-tête comprise (colonnes : ${widget.discipline == Discipline.parapente ? 'Nº, Date, Déco, Durée, Voile' : 'Nº, Date, Lieu, Run, Dénivelé/Durée, Voile'}).",
             ),
             const SizedBox(height: 12),
             Expanded(

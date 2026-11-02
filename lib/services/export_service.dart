@@ -127,17 +127,71 @@ class ExportService {
     return fields;
   }
 
-  /// Parses a table pasted from Apple Notes: tab-separated columns
-  /// `Nº · Date · Lieu · Run · Dénivelé/Durée · Voile`, where the flight
-  /// number column may hold a range ("6-8" = 3 grouped identical flights)
-  /// and the date column may be left blank to mean "same date as the row
-  /// above".
+  /// Column layout of a pasted Notes table when it has no recognisable
+  /// header row: the speedflying note is `Nº · Date · Lieu · Run ·
+  /// Dénivelé/Durée · Voile`, the parapente one `Nº · Date · Déco · Durée ·
+  /// Voile`.
+  static Map<_NotesColumn, int> _defaultColumns(Discipline discipline) =>
+      switch (discipline) {
+        Discipline.speedflying => {
+            _NotesColumn.date: 1,
+            _NotesColumn.site: 2,
+            _NotesColumn.run: 3,
+            _NotesColumn.verticalOrDuration: 4,
+            _NotesColumn.wing: 5,
+          },
+        Discipline.parapente => {
+            _NotesColumn.date: 1,
+            _NotesColumn.site: 2,
+            _NotesColumn.verticalOrDuration: 3,
+            _NotesColumn.wing: 4,
+          },
+      };
+
+  /// Reads a header row ("Nº  Date  Déco  Durée  Voile"...) into column
+  /// positions; null when the line isn't a header (no "Date" column).
+  static Map<_NotesColumn, int>? _headerColumns(List<String> fields) {
+    String normalize(String s) => s
+        .toLowerCase()
+        .replaceAll(RegExp('[éèêë]'), 'e')
+        .replaceAll(RegExp('[àâä]'), 'a')
+        .replaceAll(RegExp('[ùûü]'), 'u')
+        .replaceAll(RegExp('[îï]'), 'i')
+        .replaceAll(RegExp('[ôö]'), 'o');
+    final columns = <_NotesColumn, int>{};
+    for (var i = 1; i < fields.length; i++) {
+      final name = normalize(fields[i]);
+      final column = name.contains('date')
+          ? _NotesColumn.date
+          : name.contains('voile')
+              ? _NotesColumn.wing
+              : name.contains('denivele') || name.contains('duree')
+                  ? _NotesColumn.verticalOrDuration
+                  : name.contains('lieu') || name.contains('site') || name.contains('deco')
+                      ? _NotesColumn.site
+                      : name.contains('run')
+                          ? _NotesColumn.run
+                          : name.contains('comment') || name.contains('remarque')
+                              ? _NotesColumn.comment
+                              : null;
+      if (column != null) columns.putIfAbsent(column, () => i);
+    }
+    return columns.containsKey(_NotesColumn.date) ? columns : null;
+  }
+
+  /// Parses a table pasted from Apple Notes (tab-separated columns). The
+  /// first column is the flight number and may hold a range ("6-8" = 3
+  /// grouped identical flights); the date may be left blank to mean "same
+  /// date as the row above". Other columns are found by their header (Lieu
+  /// or Déco, Run, Dénivelé or Durée, Voile, Commentaire), falling back to
+  /// the [discipline]'s usual layout when the header wasn't pasted.
   List<FlightEntry> parseNotesTable(String raw, Discipline discipline) {
     final result = <FlightEntry>[];
     DateTime? lastDate;
     const uuid = Uuid();
     final numberPattern = RegExp(r'^\d+(-\d+)?$');
     final datePattern = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})$');
+    var columns = _defaultColumns(discipline);
 
     for (final rawLine in raw.split('\n')) {
       final line = rawLine.trimRight();
@@ -146,7 +200,15 @@ class ExportService {
       if (fields.isEmpty) continue;
 
       final noField = fields[0];
-      if (!numberPattern.hasMatch(noField)) continue; // header/title line
+      if (!numberPattern.hasMatch(noField)) {
+        // Header or title line.
+        columns = _headerColumns(fields) ?? columns;
+        continue;
+      }
+      String field(_NotesColumn column) {
+        final i = columns[column];
+        return i != null && i < fields.length ? fields[i] : '';
+      }
 
       var count = 1;
       var startNumber = int.tryParse(noField);
@@ -160,7 +222,7 @@ class ExportService {
         }
       }
 
-      final dateField = fields.length > 1 ? fields[1] : '';
+      final dateField = field(_NotesColumn.date);
       DateTime? date = lastDate;
       final match = datePattern.firstMatch(dateField);
       if (match != null) {
@@ -177,10 +239,11 @@ class ExportService {
         id: uuid.v4(),
         discipline: discipline,
         date: date,
-        site: fields.length > 2 ? fields[2] : '',
-        run: fields.length > 3 ? fields[3] : '',
-        verticalOrDuration: fields.length > 4 ? fields[4] : '',
-        wing: fields.length > 5 ? fields[5] : '',
+        site: field(_NotesColumn.site),
+        run: field(_NotesColumn.run),
+        verticalOrDuration: field(_NotesColumn.verticalOrDuration),
+        wing: field(_NotesColumn.wing),
+        comment: field(_NotesColumn.comment),
         count: count,
         sourceNumber: startNumber?.toString(),
       ));
@@ -188,3 +251,5 @@ class ExportService {
     return result;
   }
 }
+
+enum _NotesColumn { date, site, run, verticalOrDuration, wing, comment }
