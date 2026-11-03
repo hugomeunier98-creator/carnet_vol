@@ -210,22 +210,19 @@
   -->
   <!--
     Loading screen, shown at least 1 s and until the app draws its first
-    frame, dark like the app's dark background. iOS colours the status bar
-    from the top edge of the page shown at launch and keeps that colour: a
-    thin orange line there, merging into the status bar, makes it the top
-    bar colour of the app.
+    frame, dark like the app's dark background. iOS 26 colours the status
+    bar from a fixed element at the top of the page at launch, otherwise
+    from the page background (orange), and keeps that colour. The splash
+    is therefore absolute, not fixed, so the status bar stays orange above
+    the app's headers.
   -->
   <style>
     #splash {
-      position: fixed; inset: 0; z-index: 10;
+      position: absolute; inset: 0; z-index: 10;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 22px; background: #1e1b1a; color: #fff;
       font: 800 28px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       letter-spacing: -0.5px; transition: opacity .25s ease;
-    }
-    #splash::before {
-      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: #D9480F;
     }
     #splash img { width: 112px; height: 112px; border-radius: 26px;
       box-shadow: 0 8px 28px rgba(0, 0, 0, .45); }
