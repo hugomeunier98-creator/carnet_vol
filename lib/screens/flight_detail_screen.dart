@@ -137,6 +137,9 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
           ],
         ),
         body: ListView(
+          // No bounce: pulling down at the top would detach the hero from
+          // the app bar above it.
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             _HeroCard(entry: e),
