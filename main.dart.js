@@ -8455,7 +8455,7 @@ return A.mv(b,s.MD(s.r.MB(Math.max(0,p.d-s.f.d),p.b),p))},
 Og:function Og(a){this.a=a},
 a78:function a78(){},
 aQa(a){var s,r
-for(s=0;s<2;++s){r=B.el[s]
+for(s=0;s<2;++s){r=B.em[s]
 if(r.b===a)return r}return null},
 hu:function hu(a,b,c,d){var _=this
 _.c=a
@@ -8894,9 +8894,9 @@ a6p:function a6p(){},
 a6k:function a6k(a){this.a=a},
 a6l:function a6l(a){this.a=a},
 b1z(a){var s
-switch(a.a){case 0:s=A.av([B.hx,1,B.k5,2,B.nP,3,B.k6,4,B.k7,5],t.VS,t.S)
+switch(a.a){case 1:s=A.av([B.hx,1,B.k5,2,B.nP,3,B.k6,4,B.k7,5],t.VS,t.S)
 break
-case 1:s=A.av([B.hx,1,B.k5,2,B.k6,3,B.k7,4],t.VS,t.S)
+case 0:s=A.av([B.hx,1,B.k5,2,B.k6,3,B.k7,4],t.VS,t.S)
 break
 default:s=null}return s},
 b1A(a){var s,r,q,p,o=new A.ab5(),n=A.t(t.VS,t.S)
@@ -8929,7 +8929,7 @@ apM:function apM(){},
 apL:function apL(){},
 apN:function apN(){},
 aNJ(a){var s,r=t.N,q=A.t(r,r)
-for(r=J.ct(a),s=0;s<2;++s)q.V(0,A.b90(r.ja(a,new A.aJ1(B.el[s]))))
+for(r=J.ct(a),s=0;s<2;++s)q.V(0,A.b90(r.ja(a,new A.aJ1(B.em[s]))))
 return q},
 b90(a){var s,r,q,p,o,n,m,l=A.U(a,t.r2)
 B.b.ew(l,A.bai())
@@ -47498,7 +47498,7 @@ q.push(B.jw)
 d=A.AL(q,s,f,f,d,f)
 q=A.b4y(B.a6C,s.hj(0.15),g.f.yH(a))
 p=A.b([],t.JS)
-for(o=t.m4,n=0;n<2;++n){m=B.el[n]
+for(o=t.m4,n=0;n<2;++n){m=B.em[n]
 p.push(new A.nZ(m,new A.m2(m,18,f,f),A.aW(m.c,f,f,f,f,f,f,f,f),o))}o=A.ce([g.f],t.MZ)
 l=A.b([g.agi()],r)
 k=g.f===B.fB?"Site / d\xe9co":"Site"
@@ -47712,12 +47712,12 @@ s.push(q)
 B.b.f_(s)
 r.y=s}},
 ga_N(){var s,r,q=A.t(t.MZ,t.yp)
-for(s=0;s<2;++s){r=B.el[s]
+for(s=0;s<2;++s){r=B.em[s]
 q.m(0,r,new A.azk(this,r).$0())}return q},
 wE(a){return this.asK(a)},
 asK(a){var s=0,r=A.G(t.dO),q,p=this,o,n
 var $async$wE=A.H(function(b,c){if(b===1)return A.D(c,r)
-for(;;)switch(s){case 0:n=B.em[p.gwN().d]
+for(;;)switch(s){case 0:n=B.el[p.gwN().d]
 if(n!=null){q=n
 s=1
 break}o=p.c
@@ -47765,7 +47765,7 @@ case 6:s=5
 return A.v(j.qo(c.fc(),"carnet_vol_"+new A.c1(A.b(A.aNP(new A.c9(Date.now(),0,!1)).split("/"),t.s),t.Rr).bB(0,"-")+".json","application/json"),$async$pt)
 case 5:s=1
 break
-case 4:o=B.em[p.gwN().d]
+case 4:o=B.el[p.gwN().d]
 n=o==null
 m=p.r
 if(!n){l=J.jy(m,new A.ayH(o))
@@ -47859,16 +47859,16 @@ F(a){var s,r,q,p,o,n,m,l=this,k=null
 if(l.z)return B.a4O
 s=A.aNJ(l.r)
 r=l.gwN()
-q=B.em[r.d]
+q=B.el[r.d]
 p=q==null?k:q.d
 if(p==null)p=B.de
 q=A.z(a).ok.f
 q=A.aW("Carnet de vol",k,k,k,k,q==null?k:q.azi(B.k,B.eg,-0.5),k,k,k)
 o=l.gB4()
 n=t.p
-q=A.AL(A.b([A.hB(k,k,k,new A.NR(8,o,A.ew(l.gB4()?B.Jt:B.JF,k,k,k,k),k),k,k,l.gaqU(),k,k,k,"Filtrer"),l.aev(),B.jw],n),p,new A.Sf(new A.XG(r,B.em,k),B.a6S,k),B.a4I,q,64)
+q=A.AL(A.b([A.hB(k,k,k,new A.NR(8,o,A.ew(l.gB4()?B.Jt:B.JF,k,k,k,k),k),k,k,l.gaqU(),k,k,k,"Filtrer"),l.aev(),B.jw],n),p,new A.Sf(new A.XG(r,B.el,k),B.a6S,k),B.a4I,q,64)
 n=A.b([],n)
-for(m=0;m<3;++m)n.push(l.aeF(B.em[m],s))
+for(m=0;m<3;++m)n.push(l.aeF(B.el[m],s))
 return new A.j_(p,A.Fx(q,A.aT8(n,r),k,new A.vY(B.qi,B.k,p,l.gag8(),B.acC,k)),k)},
 aev(){return A.aS6(B.JX,null,new A.ayu(this,new A.ayw()),new A.ayv(this),new A.cj(A.eH(14),B.n),null,t.N)},
 aeF(a,b){var s=this,r=null,q=s.ahI(a),p=A.b6n(q),o=A.b([new A.Gb(new A.aU(B.Iy,new A.a24(a,q,r),r),r)],t.p)
@@ -47945,7 +47945,7 @@ $1(a){return a.r},
 $S:147}
 A.azf.prototype={
 $1(a){var s,r,q=null,p=A.b([A.Dq(!1,q,q,q,!0,q,q,q,!0,q,q,q,q,q,q,q,!1,q,q,q,q,q,q,A.aW(this.a,q,q,q,q,A.z(a).ok.w,q,q,q),q,q)],t.p)
-for(s=0;s<2;++s){r=B.el[s]
+for(s=0;s<2;++s){r=B.em[s]
 p.push(A.Dq(!1,q,q,q,!0,q,q,q,!0,q,new A.m2(r,q,r.d,q),q,q,q,q,new A.aze(a,r),!1,q,q,q,q,q,q,A.aW(r.c,q,q,q,q,q,q,q,q),q,q))}return A.mT(!0,A.cv(p,B.L,B.x,B.az),B.W,!0)},
 $S:698}
 A.aze.prototype={
@@ -48154,7 +48154,7 @@ if(a==="manage_names")s.a.w5()
 if(a==="check_update")s.a.w2()},
 $S:31}
 A.ayu.prototype={
-$1(a){var s=B.em[this.a.gwN().d],r=s==null?null:s.c
+$1(a){var s=B.el[this.a.gwN().d],r=s==null?null:s.c
 if(r==null)r="tous les vols"
 s=this.b
 return A.b([s.$3("import_notes",B.Jq,"Importer depuis Notes"),s.$3("import_file",B.JO,"Importer un fichier"),B.AO,s.$3("export_csv",B.JL,"Exporter en CSV ("+r+")"),s.$3("export_json",B.JN,"Exporter en JSON (toutes les donn\xe9es)"),B.AO,s.$3("manage_names",B.Jv,"G\xe9rer les sites & runs"),s.$3("check_update",B.JK,"Rechercher une mise \xe0 jour")],t.Do)},
@@ -48230,7 +48230,7 @@ m=s.$1(new A.aK(q,new A.aFC(r),n))
 l=new A.a5(q,new A.aFD(),o.h("a5<1,l>")).hR(0).a
 k=q.length===0?a0:B.b.ga5(q).c
 if(a3){o=A.b([],t.Wy)
-for(j=0;j<2;++j){i=B.el[j]
+for(j=0;j<2;++j){i=B.em[j]
 o.push(new A.a_(i.c,A.k(s.$1(new A.aK(q,new A.aFE(i),n)))))}o.push(new A.a_(a1,k==null?"\u2013":A.aWn(k,r)))
 h=o}else{q=k==null?"\u2013":A.aWn(k,r)
 h=A.b([new A.a_("Sites",""+l),new A.a_("En "+A.aY(r),A.k(m)),new A.a_(a1,q)],t.Wy)}g=A.z(a5).ax
@@ -49106,8 +49106,8 @@ F(a){var s,r,q=null,p=A.rd(a),o=this.d,n=o==null?p.a:o
 if(n==null)n=24
 s=this.e
 if(s==null)s=p.f
-switch(this.c.a){case 1:return A.ew(B.ix,s,q,q,n)
-case 0:o=new A.a9_(n,s)
+switch(this.c.a){case 0:return A.ew(B.ix,s,q,q,n)
+case 1:o=new A.a9_(n,s)
 r=t.p
 return A.aMj(A.ha(B.bp,A.b([A.t_(q,A.ew(B.ix,s,q,q,n*0.78),q,q,q,-n*0.04,n*0.12,q),A.t_(q,A.cv(A.b([o.$1(0.22),o.$1(0.3),o.$1(0.16)],r),B.dg,B.x,B.K),q,q,0,q,n*0.3,q)],r),B.F,B.b4,q),n)}}}
 A.a9_.prototype={
@@ -104947,9 +104947,9 @@ B.cO=new A.m1(8,"singleLine")
 B.ct=new A.m1(9,"errorProperty")
 B.HH=new A.o8(null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Gz=new A.K(1,0.043137254901960784,0.4470588235294118,0.5215686274509804,B.h)
-B.fB=new A.hu("Parapente",B.Gz,1,"parapente")
+B.fB=new A.hu("Parapente",B.Gz,0,"parapente")
 B.Gg=new A.K(1,0.8509803921568627,0.2823529411764706,0.058823529411764705,B.h)
-B.fC=new A.hu("Speedflying",B.Gg,0,"speedflying")
+B.fC=new A.hu("Speedflying",B.Gg,1,"speedflying")
 B.HK=new A.jG(1,"horizontal")
 B.pt=new A.jG(2,"endToStart")
 B.l6=new A.jG(3,"startToEnd")
@@ -105400,6 +105400,7 @@ B.Ko=new A.oo(4,"bmp")
 B.Kw=new A.kS(B.Ko,!1,6,"bmp")
 B.Kg=new A.ml(B.LZ,B.Kw,5,"bmp")
 B.LJ=s([B.Kk,B.Kj,B.Ki,B.Kl,B.Kh,B.Kg],A.aq("y<ml>"))
+B.el=s([B.fB,B.fC,null],A.aq("y<hu?>"))
 B.nT=new A.KG(0,"named")
 B.D5=new A.KG(1,"anonymous")
 B.LS=s([B.nT,B.D5],A.aq("y<KG>"))
@@ -105408,6 +105409,7 @@ B.MR=s([0.41233895,0.35762064,0.18051042],t.n)
 B.Mm=s([0.2126,0.7152,0.0722],t.n)
 B.Ys=s([0.01932141,0.11916382,0.95034478],t.n)
 B.LU=s([B.MR,B.Mm,B.Ys],t.zg)
+B.em=s([B.fB,B.fC],A.aq("y<hu>"))
 B.qB=s([0,4,12,1,5,13,3,7,15],t.t)
 B.af9=new A.hN(0,1)
 B.afe=new A.hN(0.5,1)
@@ -105486,7 +105488,6 @@ B.acp=new A.cb("Plan",null,null,null,null,null,null,null,null,null,null)
 B.a3Y=new A.iq(B.afk,B.acp,null,t.Q9)
 B.MG=s([B.a3W,B.a3X,B.a3Y],A.aq("y<j2<jl>>"))
 B.qI=s([0,21,51,121,151,191,271,321,360],t.n)
-B.el=s([B.fC,B.fB],A.aq("y<hu>"))
 B.MN=s([-1,0,0,1,0,0,-1,0,1,0,0,0,-1,1,0,1,1,1,1,0],t.n)
 B.Ds=new A.O_(2,"outer")
 B.oX=new A.K(0.09803921568627451,0,0,0,B.h)
@@ -105496,7 +105497,6 @@ B.MQ=s([B.E6],t.F)
 B.C9=new A.Gv(0,"left")
 B.Ca=new A.Gv(1,"right")
 B.MT=s([B.C9,B.Ca],A.aq("y<Gv>"))
-B.em=s([B.fC,B.fB,null],A.aq("y<hu?>"))
 B.ab=new A.GM(0,"upstream")
 B.MV=s([B.ab,B.j],A.aq("y<GM>"))
 B.aC=new A.tz(0,"rtl")
