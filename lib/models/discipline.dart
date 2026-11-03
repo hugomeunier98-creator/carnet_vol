@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 /// Kind of flight. Flights stored before disciplines existed have no
 /// discipline field and are speedflying flights.
 enum Discipline {
-  speedflying('Speedflying', Color(0xFFD9480F)),
-  parapente('Parapente', Color(0xFF0B7285));
+  // Declaration order is the display order (tabs, pickers).
+  parapente('Parapente', Color(0xFF0B7285)),
+  speedflying('Speedflying', Color(0xFFD9480F));
 
   final String label;
   final Color color;
