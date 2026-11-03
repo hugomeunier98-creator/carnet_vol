@@ -209,10 +209,11 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <!--
-    Loading screen, shown at least 2 s and until the app draws its first
-    frame. Dark like the app's dark background, under an orange band shaped
-    like the home screen's top bar: iOS colours the status bar from the top
-    of the page shown at launch, and keeps that colour.
+    Loading screen, shown at least 1 s and until the app draws its first
+    frame, dark like the app's dark background. iOS colours the status bar
+    from the top edge of the page shown at launch and keeps that colour: a
+    thin orange line there, merging into the status bar, makes it the top
+    bar colour of the app.
   -->
   <style>
     #splash {
@@ -223,8 +224,8 @@
       letter-spacing: -0.5px; transition: opacity .25s ease;
     }
     #splash::before {
-      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 120px;
-      background: #D9480F; border-radius: 0 0 24px 24px;
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: #D9480F;
     }
     #splash img { width: 112px; height: 112px; border-radius: 26px;
       box-shadow: 0 8px 28px rgba(0, 0, 0, .45); }
@@ -238,7 +239,7 @@
     (function () {
       var shownAt = Date.now();
       window.addEventListener('flutter-first-frame', function () {
-        var wait = Math.max(0, 2000 - (Date.now() - shownAt));
+        var wait = Math.max(0, 1000 - (Date.now() - shownAt));
         setTimeout(function () {
           var splash = document.getElementById('splash');
           if (!splash) return;
