@@ -228,10 +228,10 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     final isEditing = widget.existing != null;
     final accent = _discipline.color;
     return PageColors(
-      top: accent,
+      top: Discipline.headerColor,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: accent,
+          backgroundColor: Discipline.headerColor,
           title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol'),
           actions: [
             if (isEditing)

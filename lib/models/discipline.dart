@@ -16,6 +16,10 @@ enum Discipline {
   /// in light and dark mode alike.
   static const allColor = Color(0xFF2F5D8A);
 
+  /// Top bar colour of every screen. iOS paints the status bar once, at
+  /// launch, so a per-screen colour would contrast with it.
+  static const headerColor = Color(0xFFD9480F);
+
   /// [color] as text/icon colour on the current surface: lifted in dark
   /// mode, where the saturated base colour lacks contrast.
   Color on(BuildContext context) => Theme.of(context).brightness == Brightness.dark

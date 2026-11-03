@@ -21,7 +21,7 @@ class AppTheme {
       // Coloured bars: the iPhone status bar sits on top of them with white
       // text (translucent status bar, see web/index.html).
       appBarTheme: const AppBarTheme(
-        backgroundColor: Discipline.allColor,
+        backgroundColor: Discipline.headerColor,
         foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,

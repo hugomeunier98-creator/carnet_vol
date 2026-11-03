@@ -143,10 +143,10 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return PageColors(
-      top: e.discipline.color,
+      top: Discipline.headerColor,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: e.discipline.color,
+          backgroundColor: Discipline.headerColor,
           title: Text(_numberLabel != null ? 'Vol $_numberLabel' : 'Vol'),
           actions: [
             IconButton(
@@ -226,7 +226,7 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = entry.discipline.color;
+    const base = Discipline.headerColor;
     final white70 = Colors.white.withValues(alpha: 0.8);
 
     Widget pill(Widget icon, String text) => Container(
@@ -469,7 +469,7 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => PageColors(
-          top: Discipline.allColor,
+          top: Discipline.headerColor,
           child: LocationPickerScreen(
             title: title,
             takeoff: parseLatLng(_takeoff.text),

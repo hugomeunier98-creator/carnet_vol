@@ -331,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen>
     final imported = await Navigator.of(context).push<List<FlightEntry>>(
       MaterialPageRoute(
         builder: (_) => PageColors(
-          top: Discipline.allColor,
+          top: Discipline.headerColor,
           child: NotesImportScreen(discipline: discipline),
         ),
       ),
@@ -344,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen>
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const PageColors(
-          top: Discipline.allColor,
+          top: Discipline.headerColor,
           child: ManageNamesScreen(),
         ),
       ),
@@ -582,11 +582,11 @@ class _HomeScreenState extends State<HomeScreen>
     final accent = _tabDiscipline?.color ?? Discipline.allColor;
 
     return PageColors(
-      top: accent,
+      top: Discipline.headerColor,
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 64,
-          backgroundColor: accent,
+          backgroundColor: Discipline.headerColor,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
           ),
