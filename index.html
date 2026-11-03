@@ -154,12 +154,12 @@
   <!--
     Update check. GitHub Pages lets browsers cache every file for 10 minutes,
     so a plain reload can keep serving the old build. scripts/deploy.sh
-    replaces 20261103-1432-9c190a0 below and publishes build.json (the live build id
+    replaces 20261103-1440-6633e1d below and publishes build.json (the live build id
     plus the list of its files). When they differ, the new files are
     re-downloaded into the HTTP cache before reloading.
   -->
   <script>
-    window.carnetVolBuildId = '20261103-1432-9c190a0';
+    window.carnetVolBuildId = '20261103-1440-6633e1d';
     (function () {
       var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
 
@@ -209,8 +209,10 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <!--
-    Loading screen, until the app draws its first frame. Dark like the
-    app's dark background; the status bar keeps the page's top bar colour.
+    Loading screen, shown at least 2 s and until the app draws its first
+    frame. Dark like the app's dark background, under an orange band shaped
+    like the home screen's top bar: iOS colours the status bar from the top
+    of the page shown at launch, and keeps that colour.
   -->
   <style>
     #splash {
@@ -219,6 +221,10 @@
       gap: 22px; background: #1e1b1a; color: #fff;
       font: 800 28px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       letter-spacing: -0.5px; transition: opacity .25s ease;
+    }
+    #splash::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 120px;
+      background: #D9480F; border-radius: 0 0 24px 24px;
     }
     #splash img { width: 112px; height: 112px; border-radius: 26px;
       box-shadow: 0 8px 28px rgba(0, 0, 0, .45); }
@@ -229,12 +235,18 @@
     <div>Carnet de Vol</div>
   </div>
   <script>
-    window.addEventListener('flutter-first-frame', function () {
-      var splash = document.getElementById('splash');
-      if (!splash) return;
-      splash.classList.add('done');
-      setTimeout(function () { splash.remove(); }, 300);
-    });
+    (function () {
+      var shownAt = Date.now();
+      window.addEventListener('flutter-first-frame', function () {
+        var wait = Math.max(0, 2000 - (Date.now() - shownAt));
+        setTimeout(function () {
+          var splash = document.getElementById('splash');
+          if (!splash) return;
+          splash.classList.add('done');
+          setTimeout(function () { splash.remove(); }, 300);
+        }, wait);
+      });
+    })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
