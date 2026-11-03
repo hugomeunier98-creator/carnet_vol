@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -47,13 +45,6 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
   late List<FlightEntry> _allFlights;
   RunLocation? _location;
   bool _loadingLocation = true;
-  final _scroll = ScrollController();
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -145,77 +136,78 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
             const SizedBox(width: 4),
           ],
         ),
-        body: ListView(
-          controller: _scroll,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          padding: const EdgeInsets.only(bottom: 32),
+        // The hero stays joined to the app bar, as one block: the cards
+        // scroll (and bounce) underneath it.
+        body: Stack(
           children: [
-            // Pulled down past the top, the cards bounce but the hero
-            // stays joined to the app bar.
-            AnimatedBuilder(
-              animation: _scroll,
-              builder: (context, child) {
-                final pixels = _scroll.hasClients
-                    ? _scroll.position.pixels
-                    : 0.0;
-                return Transform.translate(
-                  offset: Offset(0, min(0.0, pixels)),
-                  child: child,
-                );
-              },
-              child: _HeroCard(entry: e),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Section(
-                    icon: Icons.chat_bubble_outline,
-                    title: 'Commentaire',
-                    child: InkWell(
-                      onTap: _editFlight,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Text(
-                        e.comment.isNotEmpty
-                            ? e.comment
-                            : 'Aucun commentaire · toucher pour en ajouter',
-                        style: e.comment.isEmpty
-                            ? TextStyle(
-                                color: cs.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
-                              )
-                            : Theme.of(context).textTheme.bodyLarge,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _Section(
-                    icon: Icons.place_outlined,
-                    title: 'Localisation',
-                    child: _loadingLocation
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        : _location == null || !_location!.hasAny
-                        ? _NoLocation(onEdit: _editLocation)
-                        : LocationMapView(
-                            location: _location!,
-                            onEdit: _editLocation,
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                  _Section(
-                    icon: Icons.photo_library_outlined,
-                    title: 'Photos & vidéos',
-                    child: PhotosSection(date: e.date),
-                  ),
-                ],
+            ListView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
               ),
+              padding: const EdgeInsets.only(bottom: 32),
+              children: [
+                // Room for the hero, drawn on top.
+                Visibility(
+                  visible: false,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: _HeroCard(entry: e),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Section(
+                        icon: Icons.chat_bubble_outline,
+                        title: 'Commentaire',
+                        child: InkWell(
+                          onTap: _editFlight,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Text(
+                            e.comment.isNotEmpty
+                                ? e.comment
+                                : 'Aucun commentaire · toucher pour en ajouter',
+                            style: e.comment.isEmpty
+                                ? TextStyle(
+                                    color: cs.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  )
+                                : Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _Section(
+                        icon: Icons.place_outlined,
+                        title: 'Localisation',
+                        child: _loadingLocation
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            : _location == null || !_location!.hasAny
+                            ? _NoLocation(onEdit: _editLocation)
+                            : LocationMapView(
+                                location: _location!,
+                                onEdit: _editLocation,
+                              ),
+                      ),
+                      const SizedBox(height: 12),
+                      _Section(
+                        icon: Icons.photo_library_outlined,
+                        title: 'Photos & vidéos',
+                        child: PhotosSection(date: e.date),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            Positioned(top: 0, left: 0, right: 0, child: _HeroCard(entry: e)),
           ],
         ),
       ),
