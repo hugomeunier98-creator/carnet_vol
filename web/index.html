@@ -87,6 +87,13 @@
       meta.content = top;
       document.head.appendChild(meta);
     };
+
+    // Flutter adds its own, transparent, theme-color tag (from the app
+    // title): it would override the screen colour.
+    new MutationObserver(function () {
+      var flutterMeta = document.getElementById('flutterweb-theme');
+      if (flutterMeta) flutterMeta.remove();
+    }).observe(document.head, { childList: true });
   </script>
 
   <!--
