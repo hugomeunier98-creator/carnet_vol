@@ -48,19 +48,20 @@
   <!--
     The page behind the app can show around it (status bar, home indicator,
     overscroll). It is painted in the app's colours: the top bar colour
-    above, the screen background below. The app updates them per screen through
+    above, the screen background below. iOS paints the status bar with the
+    page's background-color (not the gradient): it is the top bar colour. The app updates them per screen through
     carnetVolSetPageColors (lib/widgets/page_colors.dart).
   -->
   <style>
     html, body { overscroll-behavior-x: none; }
     html, body {
       background: linear-gradient(to bottom, #0B7285 0 50%, #f2f3fa 50% 100%);
-      background-color: #f2f3fa;
+      background-color: #0B7285;
     }
     @media (prefers-color-scheme: dark) {
       html, body {
         background: linear-gradient(to bottom, #0B7285 0 50%, #191c20 50% 100%);
-        background-color: #191c20;
+        background-color: #0B7285;
       }
     }
   </style>
@@ -71,7 +72,7 @@
       [document.documentElement, document.body].forEach(function (el) {
         if (!el) return;
         el.style.background = background;
-        el.style.backgroundColor = bottom;
+        el.style.backgroundColor = top;
       });
       var meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.content = top;
@@ -133,12 +134,12 @@
   <!--
     Update check. GitHub Pages lets browsers cache every file for 10 minutes,
     so a plain reload can keep serving the old build. scripts/deploy.sh
-    replaces 20261103-1157-41b6f0b below and publishes build.json (the live build id
+    replaces 20261103-1204-e135f7b below and publishes build.json (the live build id
     plus the list of its files). When they differ, the new files are
     re-downloaded into the HTTP cache before reloading.
   -->
   <script>
-    window.carnetVolBuildId = '20261103-1157-41b6f0b';
+    window.carnetVolBuildId = '20261103-1204-e135f7b';
     (function () {
       var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
 
