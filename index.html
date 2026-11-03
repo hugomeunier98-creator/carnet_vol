@@ -87,6 +87,13 @@
       meta.content = top;
       document.head.appendChild(meta);
     };
+
+    // Flutter adds its own, transparent, theme-color tag (from the app
+    // title): it would override the screen colour.
+    new MutationObserver(function () {
+      var flutterMeta = document.getElementById('flutterweb-theme');
+      if (flutterMeta) flutterMeta.remove();
+    }).observe(document.head, { childList: true });
   </script>
 
   <!--
@@ -144,12 +151,12 @@
   <!--
     Update check. GitHub Pages lets browsers cache every file for 10 minutes,
     so a plain reload can keep serving the old build. scripts/deploy.sh
-    replaces 20261103-1210-61f6b26 below and publishes build.json (the live build id
+    replaces 20261103-1214-219f2d5 below and publishes build.json (the live build id
     plus the list of its files). When they differ, the new files are
     re-downloaded into the HTTP cache before reloading.
   -->
   <script>
-    window.carnetVolBuildId = '20261103-1210-61f6b26';
+    window.carnetVolBuildId = '20261103-1214-219f2d5';
     (function () {
       var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
 
