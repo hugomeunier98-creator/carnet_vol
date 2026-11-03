@@ -613,7 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ),
-            _buildMenu(),
+            _buildMenuButton(),
             const SizedBox(width: 4),
           ],
           bottom: PreferredSize(
@@ -630,6 +630,9 @@ class _HomeScreenState extends State<HomeScreen>
             for (final d in _tabDisciplines) _buildTab(d, numberLabels),
           ],
         ),
+        endDrawer: _buildSidePanel(),
+        // Opened from the ⋯ button only: an edge swipe would fight the tabs.
+        endDrawerEnableOpenDragGesture: false,
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _createFlight,
           backgroundColor: accent,
@@ -644,55 +647,105 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildMenu() {
-    PopupMenuItem<String> item(String value, IconData icon, String text) =>
-        PopupMenuItem(
-          value: value,
-          child: Row(
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: 12),
-              Flexible(child: Text(text)),
-            ],
-          ),
-        );
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      onSelected: (value) {
-        if (value == 'export_csv') _handleExport('csv');
-        if (value == 'export_json') _handleExport('json');
-        if (value == 'import_file') _handleImportFile();
-        if (value == 'import_notes') _handleImportFromNotes();
-        if (value == 'manage_names') _handleManageNames();
-        if (value == 'check_update') _handleCheckUpdate();
-      },
-      itemBuilder: (context) {
-        final tab = _tabDiscipline?.label ?? 'tous les vols';
-        return [
-          item('import_notes', Icons.content_paste, 'Importer depuis Notes'),
-          item('import_file', Icons.file_open_outlined, 'Importer un fichier'),
-          const PopupMenuDivider(),
-          item(
-            'export_csv',
-            Icons.table_chart_outlined,
-            'Exporter en CSV ($tab)',
-          ),
-          item(
-            'export_json',
-            Icons.data_object,
-            'Exporter en JSON (toutes les données)',
-          ),
-          const PopupMenuDivider(),
-          item('manage_names', Icons.merge_type, 'Gérer les sites & runs'),
-          item(
-            'check_update',
-            Icons.system_update_outlined,
-            'Rechercher une mise à jour',
-          ),
-        ];
+  /// The ⋯ button: opens the side panel ([_buildSidePanel]).
+  Widget _buildMenuButton() {
+    return Builder(
+      builder: (context) => IconButton(
+        tooltip: 'Menu',
+        icon: const Icon(Icons.more_horiz),
+        onPressed: () => Scaffold.of(context).openEndDrawer(),
+      ),
+    );
+  }
+
+  /// Panel sliding in from the right with the app-wide actions.
+  Widget _buildSidePanel() {
+    final cs = Theme.of(context).colorScheme;
+    final build = AppUpdate.currentBuild;
+
+    Widget item(IconData icon, String text, VoidCallback action) => ListTile(
+      leading: Icon(icon, color: AppColors.accentOn(context)),
+      title: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      minTileHeight: 56,
+      onTap: () {
+        Navigator.of(context).pop();
+        action();
       },
     );
+
+    return Drawer(
+      backgroundColor: cs.surfaceContainerLow,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              child: Text(
+                'Menu',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+            item(Icons.download_outlined, 'Importer des données', _handleImport),
+            item(
+              Icons.upload_outlined,
+              'Exporter les données (.json)',
+              () => _handleExport('json'),
+            ),
+            item(Icons.merge_type, 'Gérer les sites & runs', _handleManageNames),
+            item(
+              Icons.system_update_outlined,
+              'Rechercher des mises à jour',
+              _handleCheckUpdate,
+            ),
+            const Spacer(),
+            if (build != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                child: Text(
+                  'Version $build',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// "Importer des données": a table pasted from Notes or a file.
+  Future<void> _handleImport() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.content_paste),
+                title: const Text('Coller depuis Notes'),
+                subtitle: const Text('Tableau de vols copié depuis Notes'),
+                onTap: () => Navigator.of(context).pop('notes'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.file_open_outlined),
+                title: const Text('Depuis un fichier'),
+                subtitle: const Text('Sauvegarde .json ou tableau .csv'),
+                onTap: () => Navigator.of(context).pop('file'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == 'notes') _handleImportFromNotes();
+    if (choice == 'file') _handleImportFile();
   }
 
   /// One tab's content; [discipline] is null for "Tout".
