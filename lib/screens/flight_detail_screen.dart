@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
@@ -143,10 +144,10 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return PageColors(
-      top: Discipline.headerColor,
+      top: AppColors.accent,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Discipline.headerColor,
+          backgroundColor: AppColors.accent,
           title: Text(_numberLabel != null ? 'Vol $_numberLabel' : 'Vol'),
           actions: [
             IconButton(
@@ -226,7 +227,7 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const base = Discipline.headerColor;
+    const base = AppColors.accent;
     final white70 = Colors.white.withValues(alpha: 0.8);
 
     Widget pill(Widget icon, String text) => Container(
@@ -469,7 +470,7 @@ class _LocationEditDialogState extends State<_LocationEditDialog> {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => PageColors(
-          top: Discipline.headerColor,
+          top: AppColors.accent,
           child: LocationPickerScreen(
             title: title,
             takeoff: parseLatLng(_takeoff.text),

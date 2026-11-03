@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../theme/app_colors.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../utils/date_format.dart';
@@ -226,12 +227,12 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
-    final accent = _discipline.color;
+    const accent = AppColors.accent;
     return PageColors(
-      top: Discipline.headerColor,
+      top: AppColors.accent,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Discipline.headerColor,
+          backgroundColor: AppColors.accent,
           title: Text(isEditing ? 'Modifier le vol' : 'Nouveau vol'),
           actions: [
             if (isEditing)
@@ -251,7 +252,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
               SegmentedButton<Discipline>(
                 style: SegmentedButton.styleFrom(
                   selectedBackgroundColor: accent.withValues(alpha: 0.15),
-                  selectedForegroundColor: _discipline.on(context),
+                  selectedForegroundColor: AppColors.accentOn(context),
                   minimumSize: const Size(0, 46),
                 ),
                 segments: [

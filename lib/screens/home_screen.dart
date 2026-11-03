@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
@@ -223,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             for (final d in Discipline.values)
               ListTile(
-                leading: DisciplineIcon(d, color: d.color),
+                leading: DisciplineIcon(d, color: AppColors.accent),
                 title: Text(d.label),
                 onTap: () => Navigator.of(context).pop(d),
               ),
@@ -331,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen>
     final imported = await Navigator.of(context).push<List<FlightEntry>>(
       MaterialPageRoute(
         builder: (_) => PageColors(
-          top: Discipline.headerColor,
+          top: AppColors.accent,
           child: NotesImportScreen(discipline: discipline),
         ),
       ),
@@ -344,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen>
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const PageColors(
-          top: Discipline.headerColor,
+          top: AppColors.accent,
           child: ManageNamesScreen(),
         ),
       ),
@@ -579,14 +580,14 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     final numberLabels = _numberLabels;
-    final accent = _tabDiscipline?.color ?? Discipline.allColor;
+    final accent = AppColors.accent;
 
     return PageColors(
-      top: Discipline.headerColor,
+      top: AppColors.accent,
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 64,
-          backgroundColor: Discipline.headerColor,
+          backgroundColor: AppColors.accent,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
           ),
@@ -821,7 +822,6 @@ class _DisciplineSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = disciplines[controller.index];
     return Container(
       height: 44,
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -846,7 +846,7 @@ class _DisciplineSwitcher extends StatelessWidget {
           ],
         ),
         splashBorderRadius: BorderRadius.circular(11),
-        labelColor: selected?.color ?? Discipline.allColor,
+        labelColor: AppColors.accent,
         unselectedLabelColor: Colors.white.withValues(alpha: 0.9),
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         unselectedLabelStyle: const TextStyle(
@@ -888,7 +888,6 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = discipline?.color ?? Discipline.allColor;
     int countOf(Iterable<FlightEntry> list) =>
         list.fold<int>(0, (sum, f) => sum + f.count);
     final now = DateTime.now();
@@ -912,10 +911,7 @@ class _SummaryCard extends StatelessWidget {
 
     final cs = Theme.of(context).colorScheme;
     final accent =
-        discipline?.on(context) ??
-        (Theme.of(context).brightness == Brightness.dark
-            ? Color.lerp(base, Colors.white, 0.35)!
-            : base);
+AppColors.accentOn(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
@@ -1085,7 +1081,7 @@ class _FlightTile extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
         child: Row(
           children: [
-            _DateBadge(date: entry.date, color: discipline.on(context)),
+            _DateBadge(date: entry.date, color: AppColors.accentOn(context)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1119,7 +1115,7 @@ class _FlightTile extends StatelessWidget {
                         DisciplineIcon(
                           discipline,
                           size: 14,
-                          color: discipline.on(context),
+                          color: AppColors.accentOn(context),
                         ),
                         const SizedBox(width: 4),
                       ],
@@ -1163,13 +1159,13 @@ class _FlightTile extends StatelessWidget {
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: discipline.color.withValues(alpha: 0.12),
+                      color: AppColors.accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '×${entry.count}',
                       style: text.labelSmall?.copyWith(
-                        color: discipline.on(context),
+                        color: AppColors.accentOn(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),

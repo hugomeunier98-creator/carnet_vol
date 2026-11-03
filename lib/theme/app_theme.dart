@@ -1,18 +1,21 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../models/discipline.dart';
+import 'app_colors.dart';
 
 /// App-wide look: soft grouped background, borderless rounded surfaces,
 /// filled fields, large tap targets. Light and dark follow the phone.
 class AppTheme {
-  static const _seed = Color(0xFF2B6CB0);
-
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
 
   static ThemeData _build(Brightness brightness) {
-    final cs = ColorScheme.fromSeed(seedColor: _seed, brightness: brightness);
+    final cs = ColorScheme.fromSeed(
+      seedColor: AppColors.accent,
+      brightness: brightness,
+      // Keeps primary close to the accent itself rather than a muted tone.
+      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+    );
     final radius = BorderRadius.circular(14);
     return ThemeData(
       colorScheme: cs,
@@ -21,7 +24,7 @@ class AppTheme {
       // Coloured bars: the iPhone status bar sits on top of them with white
       // text (translucent status bar, see web/index.html).
       appBarTheme: const AppBarTheme(
-        backgroundColor: Discipline.headerColor,
+        backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -44,8 +47,14 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.6),
-        border: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide.none,
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: radius,
           borderSide: BorderSide(color: cs.primary, width: 1.5),
@@ -80,7 +89,10 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
-      dividerTheme: DividerThemeData(color: cs.outlineVariant.withValues(alpha: 0.5), space: 1),
+      dividerTheme: DividerThemeData(
+        color: cs.outlineVariant.withValues(alpha: 0.5),
+        space: 1,
+      ),
       // Enables the iOS-style edge swipe-to-go-back gesture (same effect
       // as tapping the back arrow) on every platform this runs on.
       pageTransitionsTheme: const PageTransitionsTheme(
