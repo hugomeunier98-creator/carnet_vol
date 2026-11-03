@@ -131,8 +131,11 @@ class _LocationMapViewState extends State<LocationMapView> {
                 ),
               ),
               children: [
+                // Topographic, as the default layer of the location picker.
                 fm.TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  urlTemplate: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
+                  maxNativeZoom: 17,
                   userAgentPackageName: 'com.hugomeunier.carnet_vol',
                 ),
                 fm.MarkerLayer(
