@@ -23,10 +23,15 @@
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <!-- iOS only honours the status bar style below (app drawn under the
-       status bar and the home indicator) with its own capable tag. -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!--
+    "default": the app starts below the status bar, which iOS paints with
+    theme-color, kept equal to the current screen's top bar colour (see
+    carnetVolSetPageColors below). "black-translucent" draws the app under
+    the status bar, but iOS 26 then blurs and dims that area and leaves a
+    band below the app the height of the status bar.
+  -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Carnet de vol">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
@@ -41,10 +46,9 @@
     horizontal swipe before the app's own swipe-to-go-back gesture gets it.
   -->
   <!--
-    The page behind the app shows in the status bar area (iOS tints and
-    fades it from the page background) and below the app, around the home
-    indicator. It is painted in the app's colours: the top bar colour above,
-    the screen background below. The app updates them per screen through
+    The page behind the app can show around it (status bar, home indicator,
+    overscroll). It is painted in the app's colours: the top bar colour
+    above, the screen background below. The app updates them per screen through
     carnetVolSetPageColors (lib/widgets/page_colors.dart).
   -->
   <style>
@@ -75,8 +79,7 @@
   </script>
 
   <!--
-    Full-screen layout on iPhone: the status bar is translucent (no band at
-    the top) and the page extends under it and under the home indicator.
+    Layout down to the bottom edge of the iPhone, under the home indicator.
     Flutter replaces the viewport meta tag with its own, without
     viewport-fit=cover, so it is added back whenever a tag is inserted.
     Flutter web also reports no safe-area insets, so the app reads them
@@ -102,13 +105,6 @@
         var top = parseFloat(style.paddingTop) || 0;
         var bottom = parseFloat(style.paddingBottom) || 0;
         probe.remove();
-        // Some iOS versions stop the page (and so the app) above the home
-        // indicator anyway: only the part of the inset the app actually
-        // covers needs keeping clear.
-        if (window.navigator.standalone) {
-          var gap = window.screen.height - document.documentElement.clientHeight;
-          bottom = Math.max(0, bottom - Math.max(0, gap));
-        }
         return [top, bottom];
       };
     })();
