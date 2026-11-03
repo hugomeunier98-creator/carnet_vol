@@ -13,8 +13,13 @@ class AppTheme {
     final cs = ColorScheme.fromSeed(
       seedColor: AppColors.accent,
       brightness: brightness,
-      // Keeps primary close to the accent itself rather than a muted tone.
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      // Calm, barely tinted surfaces; the accent itself for primary.
+      dynamicSchemeVariant: DynamicSchemeVariant.neutral,
+    ).copyWith(
+      primary: brightness == Brightness.dark
+          ? Color.lerp(AppColors.accent, Colors.white, 0.35)
+          : AppColors.accent,
+      onPrimary: Colors.white,
     );
     final radius = BorderRadius.circular(14);
     return ThemeData(
