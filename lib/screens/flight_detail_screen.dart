@@ -9,11 +9,11 @@ import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../utils/date_format.dart';
 import '../utils/flight_numbering.dart';
-import '../utils/latlng_parser.dart';
+import '../utils/run_locations.dart';
+import '../widgets/location_edit_dialog.dart';
 import '../widgets/location_map_view.dart';
 import '../widgets/photos_section.dart';
 import 'flight_form_screen.dart';
-import 'location_picker_screen.dart';
 
 class FlightDetailScreen extends StatefulWidget {
   final FlightEntry entry;
@@ -58,10 +58,9 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
   Future<void> _loadLocation() async {
     final all = await _storage.loadRunLocations();
-    final match = all.where((l) => l.matches(_entry.site, _entry.run));
     if (!mounted) return;
     setState(() {
-      _location = match.isEmpty ? null : match.first;
+      _location = locationFor(all, _entry.site, _entry.run);
       _loadingLocation = false;
     });
   }
@@ -98,42 +97,21 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     }
   }
 
-  /// Where the map picker starts for a run with no point yet: another run
-  /// of the same site if one is located, else the last located run.
-  LatLngPair? _fallbackCenter(List<RunLocation> all) {
-    LatLngPair? firstPoint(RunLocation l) => l.hasTakeoff
-        ? (l.takeoffLat!, l.takeoffLng!)
-        : l.hasLanding
-        ? (l.landingLat!, l.landingLng!)
-        : null;
-    final located = all.where((l) => l.hasAny).toList();
-    for (final l in located) {
-      if (l.site == _entry.site) return firstPoint(l);
-    }
-    return located.isEmpty ? null : firstPoint(located.last);
-  }
-
   Future<void> _editLocation() async {
     final known = await _storage.loadRunLocations();
     if (!mounted) return;
     final result = await showDialog<RunLocation>(
       context: context,
-      builder: (context) => _LocationEditDialog(
+      builder: (context) => LocationEditDialog(
         site: _entry.site,
         run: _entry.run,
         existing: _location,
-        fallbackCenter: _fallbackCenter(known),
+        fallbackCenter: fallbackCenterFor(known, _entry.site),
       ),
     );
     if (result == null) return;
     final all = await _storage.loadRunLocations();
-    final idx = all.indexWhere((l) => l.matches(result.site, result.run));
-    if (idx >= 0) {
-      all[idx] = result;
-    } else {
-      all.add(result);
-    }
-    await _storage.saveRunLocations(all);
+    await _storage.saveRunLocations(upsertLocation(all, result));
     if (!mounted) return;
     setState(() => _location = result);
   }
@@ -391,160 +369,6 @@ class _NoLocation extends StatelessWidget {
           icon: const Icon(Icons.add_location_alt_outlined),
           label: const Text('Ajouter le décollage et l\'atterrissage'),
         ),
-      ],
-    );
-  }
-}
-
-class _LocationEditDialog extends StatefulWidget {
-  final String site;
-  final String run;
-  final RunLocation? existing;
-  final LatLngPair? fallbackCenter;
-
-  const _LocationEditDialog({
-    required this.site,
-    required this.run,
-    this.existing,
-    this.fallbackCenter,
-  });
-
-  @override
-  State<_LocationEditDialog> createState() => _LocationEditDialogState();
-}
-
-class _LocationEditDialogState extends State<_LocationEditDialog> {
-  late final TextEditingController _takeoff;
-  late final TextEditingController _landing;
-  String? _takeoffError;
-  String? _landingError;
-
-  @override
-  void initState() {
-    super.initState();
-    final e = widget.existing;
-    _takeoff = TextEditingController(
-      text: formatLatLng(e?.takeoffLat, e?.takeoffLng),
-    );
-    _landing = TextEditingController(
-      text: formatLatLng(e?.landingLat, e?.landingLng),
-    );
-  }
-
-  @override
-  void dispose() {
-    _takeoff.dispose();
-    _landing.dispose();
-    super.dispose();
-  }
-
-  void _save() {
-    final takeoff = parseLatLng(_takeoff.text);
-    final landing = parseLatLng(_landing.text);
-    setState(() {
-      _takeoffError = _takeoff.text.trim().isNotEmpty && takeoff == null
-          ? 'Format attendu : lat, lon'
-          : null;
-      _landingError = _landing.text.trim().isNotEmpty && landing == null
-          ? 'Format attendu : lat, lon'
-          : null;
-    });
-    if (_takeoffError != null || _landingError != null) return;
-
-    final result = RunLocation(
-      site: widget.site,
-      run: widget.run,
-      takeoffLat: takeoff?.$1,
-      takeoffLng: takeoff?.$2,
-      landingLat: landing?.$1,
-      landingLng: landing?.$2,
-    );
-    Navigator.of(context).pop(result);
-  }
-
-  Future<void> _pickOnMap() async {
-    final title = widget.run.isNotEmpty
-        ? '${widget.site} · ${widget.run}'
-        : widget.site;
-    final picked = await Navigator.of(context).push<PickedLocation>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => PageColors(
-          top: AppColors.accent,
-          child: LocationPickerScreen(
-            title: title,
-            takeoff: parseLatLng(_takeoff.text),
-            landing: parseLatLng(_landing.text),
-            fallbackCenter: widget.fallbackCenter,
-          ),
-        ),
-      ),
-    );
-    if (picked == null) return;
-    setState(() {
-      _takeoff.text = formatLatLng(picked.takeoff?.$1, picked.takeoff?.$2);
-      _landing.text = formatLatLng(picked.landing?.$1, picked.landing?.$2);
-      _takeoffError = null;
-      _landingError = null;
-    });
-  }
-
-  Widget _coordField({
-    required String label,
-    required TextEditingController controller,
-    required String? errorText,
-  }) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: 'ex: 45.4489, 6.9622',
-        errorText: errorText,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        widget.run.isNotEmpty ? '${widget.site} · ${widget.run}' : widget.site,
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            FilledButton.tonalIcon(
-              onPressed: _pickOnMap,
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('Placer sur la carte'),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Ou colle une position au format "lat, lon" (ex: depuis Google Maps ou Apple Plans).',
-            ),
-            const SizedBox(height: 16),
-            _coordField(
-              label: 'Décollage',
-              controller: _takeoff,
-              errorText: _takeoffError,
-            ),
-            const SizedBox(height: 16),
-            _coordField(
-              label: 'Atterrissage',
-              controller: _landing,
-              errorText: _landingError,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        FilledButton(onPressed: _save, child: const Text('Enregistrer')),
       ],
     );
   }
