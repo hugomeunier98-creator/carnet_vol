@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -45,6 +47,13 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
   late List<FlightEntry> _allFlights;
   RunLocation? _location;
   bool _loadingLocation = true;
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -137,12 +146,27 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
           ],
         ),
         body: ListView(
-          // No bounce: pulling down at the top would detach the hero from
-          // the app bar above it.
-          physics: const ClampingScrollPhysics(),
+          controller: _scroll,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            _HeroCard(entry: e),
+            // Pulled down past the top, the cards bounce but the hero
+            // stays joined to the app bar.
+            AnimatedBuilder(
+              animation: _scroll,
+              builder: (context, child) {
+                final pixels = _scroll.hasClients
+                    ? _scroll.position.pixels
+                    : 0.0;
+                return Transform.translate(
+                  offset: Offset(0, min(0.0, pixels)),
+                  child: child,
+                );
+              },
+              child: _HeroCard(entry: e),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
