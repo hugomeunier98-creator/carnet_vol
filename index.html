@@ -154,12 +154,12 @@
   <!--
     Update check. GitHub Pages lets browsers cache every file for 10 minutes,
     so a plain reload can keep serving the old build. scripts/deploy.sh
-    replaces 20261104-0010-3afbc38 below and publishes build.json (the live build id
+    replaces 20261104-1515-50d90ea below and publishes build.json (the live build id
     plus the list of its files). When they differ, the new files are
     re-downloaded into the HTTP cache before reloading.
   -->
   <script>
-    window.carnetVolBuildId = '20261104-0010-3afbc38';
+    window.carnetVolBuildId = '20261104-1515-50d90ea';
     (function () {
       var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
 
@@ -210,12 +210,18 @@
   -->
   <!--
     Loading screen, shown at least 1 s and until the app draws its first
-    frame, dark like the app's dark background. iOS 26 colours the status
-    bar from a fixed element at the top of the page at launch, otherwise
-    from the page background (orange), and keeps that colour. The splash
-    is therefore absolute, not fixed, so the status bar stays orange above
-    the app's headers.
+    frame, dark like the app's dark background. iOS colours the status bar
+    from the top of the page shown at launch and keeps that colour (a thin
+    line is not enough): the splash starts with an orange band shaped like
+    the home screen's top bar (120 px, rounded 24 px), so the status bar is
+    orange and the app's header takes the band's place.
   -->
+  <style>
+    #splash::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 120px;
+      background: #D9480F; border-radius: 0 0 24px 24px;
+    }
+  </style>
   <style>
     #splash {
       position: absolute; inset: 0; z-index: 10;
