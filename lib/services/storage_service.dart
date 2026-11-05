@@ -137,4 +137,74 @@ class StorageService {
       await saveRunLocations([...kept, ...renamed]);
     }
   }
+
+  /// Corrections of the stored sites and runs, applied at each launch so
+  /// that re-imported data gets them too. Nothing is written when there is
+  /// nothing to correct.
+  Future<void> applyDataFixes() async {
+    // "Chartreuse" is a range, not a site: its runs (Saint Hilaire, Dent de
+    // Crolles, Pravouta) become the sites.
+    await _moveSiteRun(
+      (site, run) => site == 'Chartreuse' && run.isNotEmpty ? (run, '') : null,
+      dropSite: 'Chartreuse',
+    );
+  }
+
+  /// Moves flights and GPS points to the (site, run) [to] gives, null to
+  /// leave them, and removes [dropSite] from the known sites. A point
+  /// already set at the destination is kept. The new site names are added
+  /// to the known sites.
+  Future<void> _moveSiteRun(
+    (String, String)? Function(String site, String run) to, {
+    required String dropSite,
+  }) async {
+    final stored = await loadFlights();
+    final locations = await loadRunLocations();
+    final sites = await loadSites();
+    if (!stored.any((f) => to(f.site, f.run) != null) &&
+        !locations.any((l) => to(l.site, l.run) != null) &&
+        !sites.contains(dropSite)) {
+      return;
+    }
+
+    final newSites = <String>{};
+    final flights = <FlightEntry>[];
+    for (final f in stored) {
+      final dest = to(f.site, f.run);
+      if (dest == null) {
+        flights.add(f);
+        continue;
+      }
+      newSites.add(dest.$1);
+      flights.add(f.copyWith(site: dest.$1, run: dest.$2));
+    }
+    await saveFlights(flights);
+
+    final kept = [
+      for (final l in locations)
+        if (to(l.site, l.run) == null) l,
+    ];
+    for (final l in locations) {
+      final dest = to(l.site, l.run);
+      if (dest == null) continue;
+      final (site, run) = dest;
+      newSites.add(site);
+      if (kept.any((k) => k.matches(site, run))) continue;
+      kept.add(
+        RunLocation(
+          site: site,
+          run: run,
+          takeoffLat: l.takeoffLat,
+          takeoffLng: l.takeoffLng,
+          landingLat: l.landingLat,
+          landingLng: l.landingLng,
+        ),
+      );
+    }
+    await saveRunLocations(kept);
+
+    await saveSites(
+      ({...sites, ...newSites}..remove(dropSite)).toList()..sort(),
+    );
+  }
 }
