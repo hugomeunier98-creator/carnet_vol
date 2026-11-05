@@ -47372,8 +47372,8 @@ q=A.b([],q)
 o=s.r
 if(o.length!==0)q.push(l.$2(B.Kk,o))
 o=s.f
-if(o.length!==0){if(r===B.ee&&s.ga6q()!=null){r=A.l(s.ga6q())===B.c.dt(o)?" m":""
-r=l.$2(B.Ku,"D\xe9nivel\xe9 : "+o+r)}else r=l.$2(B.K9,"Dur\xe9e : "+o)
+if(o.length!==0){if(r===B.ee&&s.ga6q()!=null)r=l.$2(B.Ku,o+(A.l(s.ga6q())===B.c.dt(o)?" m":""))
+else r=l.$2(B.K9,o)
 q.push(r)}s=s.w
 if(s>1)q.push(l.$2(B.K8,""+s+" vols"))
 p.push(A.aNx(q,8,8))
