@@ -322,7 +322,7 @@ class _HeroCard extends StatelessWidget {
                           size: 16,
                           color: Colors.white,
                         ),
-                        'Dénivelé : ${entry.verticalOrDuration}'
+                        '${entry.verticalOrDuration}'
                         '${'${entry.verticalMeters}' == entry.verticalOrDuration.trim() ? ' m' : ''}',
                       )
                     : pill(
@@ -331,7 +331,7 @@ class _HeroCard extends StatelessWidget {
                           size: 16,
                           color: Colors.white,
                         ),
-                        'Durée : ${entry.verticalOrDuration}',
+                        entry.verticalOrDuration,
                       ),
               if (entry.count > 1)
                 pill(
