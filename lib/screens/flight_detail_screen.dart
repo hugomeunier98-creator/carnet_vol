@@ -313,6 +313,26 @@ class _HeroCard extends StatelessWidget {
                   const Icon(Icons.paragliding, size: 16, color: Colors.white),
                   entry.wing,
                 ),
+              if (entry.verticalOrDuration.isNotEmpty)
+                entry.discipline == Discipline.speedflying &&
+                        entry.verticalMeters != null
+                    ? pill(
+                        const Icon(
+                          Icons.trending_down,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        'Dénivelé : ${entry.verticalOrDuration}'
+                        '${'${entry.verticalMeters}' == entry.verticalOrDuration.trim() ? ' m' : ''}',
+                      )
+                    : pill(
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        'Durée : ${entry.verticalOrDuration}',
+                      ),
               if (entry.count > 1)
                 pill(
                   const Icon(Icons.repeat, size: 16, color: Colors.white),
