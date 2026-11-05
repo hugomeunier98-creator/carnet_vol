@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../services/export_service.dart';
+import '../widgets/clear_button.dart';
 
 class NotesImportScreen extends StatefulWidget {
   final Discipline discipline;
@@ -19,14 +20,21 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
   List<FlightEntry>? _preview;
 
   void _parse() {
-    setState(() => _preview = _export.parseNotesTable(_controller.text, widget.discipline));
+    setState(
+      () => _preview = _export.parseNotesTable(
+        _controller.text,
+        widget.discipline,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final preview = _preview;
     return Scaffold(
-      appBar: AppBar(title: Text('Importer depuis Notes · ${widget.discipline.label}')),
+      appBar: AppBar(
+        title: Text('Importer depuis Notes · ${widget.discipline.label}'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -44,9 +52,10 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   hintText: 'Colle le tableau ici…',
+                  suffixIcon: ClearButton(_controller),
                 ),
               ),
             ),
@@ -58,8 +67,10 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
             ),
             const SizedBox(height: 12),
             if (preview != null) ...[
-              Text('${preview.length} vol(s) détecté(s)',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                '${preview.length} vol(s) détecté(s)',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               Expanded(
                 flex: 3,
@@ -73,12 +84,17 @@ class _NotesImportScreenState extends State<NotesImportScreen> {
                               '${f.date.day.toString().padLeft(2, '0')}/${f.date.month.toString().padLeft(2, '0')}/${f.date.year}';
                           return ListTile(
                             dense: true,
-                            leading: Text(f.flightNumberLabel ?? '',
-                                style: Theme.of(context).textTheme.bodySmall),
-                            title: Text('$d · ${f.site}'
-                                '${f.run.isNotEmpty ? ' · ${f.run}' : ''}'),
+                            leading: Text(
+                              f.flightNumberLabel ?? '',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            title: Text(
+                              '$d · ${f.site}'
+                              '${f.run.isNotEmpty ? ' · ${f.run}' : ''}',
+                            ),
                             subtitle: Text(
-                                '${f.wing} · ${f.verticalOrDuration}${f.count > 1 ? ' · ×${f.count}' : ''}'),
+                              '${f.wing} · ${f.verticalOrDuration}${f.count > 1 ? ' · ×${f.count}' : ''}',
+                            ),
                           );
                         },
                       ),

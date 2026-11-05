@@ -5,6 +5,7 @@ import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/run_locations.dart';
+import '../widgets/clear_button.dart';
 import '../widgets/location_edit_dialog.dart';
 
 class ManageNamesScreen extends StatefulWidget {
@@ -195,7 +196,8 @@ class _ManageNamesScreenState extends State<ManageNamesScreen>
                       controller: fieldController,
                       focusNode: focusNode,
                       autofocus: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
+                        suffixIcon: ClearButton(fieldController),
                         labelText: 'Nouveau nom',
                         helperText: 'Choisis un nom existant pour fusionner, ou tape un nouveau nom',
                       ),
@@ -264,7 +266,10 @@ class _ManageNamesScreenState extends State<ManageNamesScreen>
             controller: controller,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Nom du site'),
+            decoration: InputDecoration(
+              labelText: 'Nom du site',
+              suffixIcon: ClearButton(controller),
+            ),
             onSubmitted: (_) => submit(),
           ),
           actions: [

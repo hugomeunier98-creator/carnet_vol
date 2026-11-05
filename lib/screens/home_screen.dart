@@ -360,7 +360,9 @@ class _HomeScreenState extends State<HomeScreen>
   void _mergeImported(List<FlightEntry> imported, {int gpsPoints = 0}) {
     setState(() {
       for (final raw in imported) {
-        final entry = raw.copyWith(site: canonicalSite(raw.site));
+        final entry = raw
+            .copyWith(site: canonicalSite(raw.site))
+            .withoutParapenteRun();
         // The same flight (exported then imported back), else the same
         // number in the same discipline (a re-pasted Notes table: parapente
         // #12 is not speedflying #12).
@@ -440,13 +442,16 @@ class _HomeScreenState extends State<HomeScreen>
                     options: _sites,
                     onChanged: (v) => setModalState(() => site = v),
                   ),
-                  const SizedBox(height: 12),
-                  _filterDropdown(
-                    label: 'Run',
-                    value: run,
-                    options: _runs,
-                    onChanged: (v) => setModalState(() => run = v),
-                  ),
+                  // Runs are speedflying lines; parapente has none.
+                  if (_tabDiscipline != Discipline.parapente) ...[
+                    const SizedBox(height: 12),
+                    _filterDropdown(
+                      label: 'Run',
+                      value: run,
+                      options: _runs,
+                      onChanged: (v) => setModalState(() => run = v),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   _filterDropdown(
                     label: 'Voile',

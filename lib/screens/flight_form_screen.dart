@@ -7,6 +7,7 @@ import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../utils/date_format.dart';
 import '../widgets/page_colors.dart';
+import '../widgets/clear_button.dart';
 import '../widgets/discipline_icon.dart';
 
 class FlightFormScreen extends StatefulWidget {
@@ -87,7 +88,9 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
       discipline: _discipline,
       date: _date,
       site: canonicalSite(_siteController.text.trim()),
-      run: _runController.text.trim(),
+      run: _discipline == Discipline.parapente
+          ? ''
+          : _runController.text.trim(),
       verticalOrDuration: _verticalController.text.trim(),
       wing: _wingController.text.trim(),
       count: _count,
@@ -123,7 +126,11 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
         return TextFormField(
           controller: fieldController,
           focusNode: focusNode,
-          decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon),
+            suffixIcon: ClearButton(fieldController),
+          ),
           validator: required
               ? (v) => (v == null || v.trim().isEmpty) ? 'Champ requis' : null
               : null,
@@ -282,12 +289,15 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
                     options: widget.knownSites,
                     required: true,
                   ),
-                  _autocompleteField(
-                    label: 'Run (optionnel)',
-                    icon: Icons.route_outlined,
-                    controller: _runController,
-                    options: widget.knownRuns,
-                  ),
+                  // A run is a speedflying line; in parapente the site is
+                  // the takeoff or flying area.
+                  if (_discipline != Discipline.parapente)
+                    _autocompleteField(
+                      label: 'Run (optionnel)',
+                      icon: Icons.route_outlined,
+                      controller: _runController,
+                      options: widget.knownRuns,
+                    ),
                 ],
               ),
               _FormSection(
@@ -306,15 +316,17 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
                     controller: _verticalController,
                     // Speedflying logs mostly vertical drop; parapente a duration.
                     decoration: _discipline == Discipline.parapente
-                        ? const InputDecoration(
+                        ? InputDecoration(
                             labelText: 'Durée',
                             helperText: 'ex: 45min, 1h30',
-                            prefixIcon: Icon(Icons.timer_outlined),
+                            prefixIcon: const Icon(Icons.timer_outlined),
+                            suffixIcon: ClearButton(_verticalController),
                           )
-                        : const InputDecoration(
+                        : InputDecoration(
                             labelText: 'Dénivelé / durée',
                             helperText: 'ex: 800, 1h, soaring, 600/soaring',
-                            prefixIcon: Icon(Icons.trending_down),
+                            prefixIcon: const Icon(Icons.trending_down),
+                            suffixIcon: ClearButton(_verticalController),
                           ),
                   ),
                   _countStepper(),
@@ -328,8 +340,9 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
                     maxLines: 4,
                     minLines: 2,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Conditions, sensations, à retenir…',
+                      suffixIcon: ClearButton(_commentController),
                     ),
                   ),
                 ],

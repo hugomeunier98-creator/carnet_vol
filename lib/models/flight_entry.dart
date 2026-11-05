@@ -68,36 +68,47 @@ class FlightEntry {
     );
   }
 
+  /// Parapente has no runs (a run is a speedflying line; the site is the
+  /// takeoff or flying area): a run imported or kept from before for a
+  /// parapente flight moves to the comment.
+  FlightEntry withoutParapenteRun() {
+    if (discipline != Discipline.parapente || run.isEmpty) return this;
+    return copyWith(
+      run: '',
+      comment: comment.isEmpty ? run : '$comment · $run',
+    );
+  }
+
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'discipline': discipline.name,
-        'date': date.toIso8601String(),
-        'site': site,
-        'run': run,
-        'verticalOrDuration': verticalOrDuration,
-        'wing': wing,
-        'count': count,
-        'comment': comment,
-        'sourceNumber': sourceNumber,
-      };
+    'id': id,
+    'discipline': discipline.name,
+    'date': date.toIso8601String(),
+    'site': site,
+    'run': run,
+    'verticalOrDuration': verticalOrDuration,
+    'wing': wing,
+    'count': count,
+    'comment': comment,
+    'sourceNumber': sourceNumber,
+  };
 
   /// [fallbackDiscipline] applies when the JSON has no discipline (data
   /// saved or exported before disciplines existed).
   factory FlightEntry.fromJson(
     Map<String, dynamic> json, {
     Discipline fallbackDiscipline = Discipline.speedflying,
-  }) =>
-      FlightEntry(
-        id: json['id'] as String,
-        discipline: Discipline.tryParse(json['discipline'] as String?) ??
-            fallbackDiscipline,
-        date: DateTime.parse(json['date'] as String),
-        site: json['site'] as String,
-        run: (json['run'] as String?) ?? '',
-        verticalOrDuration: (json['verticalOrDuration'] as String?) ?? '',
-        wing: json['wing'] as String,
-        count: (json['count'] as int?) ?? 1,
-        comment: (json['comment'] as String?) ?? '',
-        sourceNumber: json['sourceNumber'] as String?,
-      );
+  }) => FlightEntry(
+    id: json['id'] as String,
+    discipline:
+        Discipline.tryParse(json['discipline'] as String?) ??
+        fallbackDiscipline,
+    date: DateTime.parse(json['date'] as String),
+    site: json['site'] as String,
+    run: (json['run'] as String?) ?? '',
+    verticalOrDuration: (json['verticalOrDuration'] as String?) ?? '',
+    wing: json['wing'] as String,
+    count: (json['count'] as int?) ?? 1,
+    comment: (json['comment'] as String?) ?? '',
+    sourceNumber: json['sourceNumber'] as String?,
+  );
 }

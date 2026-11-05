@@ -4,6 +4,7 @@ import '../models/run_location.dart';
 import '../screens/location_picker_screen.dart';
 import '../theme/app_colors.dart';
 import '../utils/latlng_parser.dart';
+import 'clear_button.dart';
 import 'page_colors.dart';
 
 /// Edits the takeoff and landing of a site (empty [run]) or of one of its
@@ -113,6 +114,7 @@ class _LocationEditDialogState extends State<LocationEditDialog> {
         labelText: label,
         hintText: 'ex: 45.4489, 6.9622',
         errorText: errorText,
+        suffixIcon: ClearButton(controller),
       ),
     );
   }

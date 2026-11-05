@@ -148,6 +148,11 @@ class StorageService {
       (site, run) => site == 'Chartreuse' && run.isNotEmpty ? (run, '') : null,
       dropSite: 'Chartreuse',
     );
+
+    final flights = await loadFlights();
+    if (flights.any((f) => !identical(f.withoutParapenteRun(), f))) {
+      await saveFlights([for (final f in flights) f.withoutParapenteRun()]);
+    }
   }
 
   /// Moves flights and GPS points to the (site, run) [to] gives, null to

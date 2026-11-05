@@ -1,3 +1,4 @@
+import 'package:carnet_vol/models/discipline.dart';
 import 'package:carnet_vol/models/flight_entry.dart';
 import 'package:carnet_vol/models/run_location.dart';
 import 'package:carnet_vol/services/storage_service.dart';
@@ -59,5 +60,27 @@ void main() {
     ]);
     final locations = await storage.loadRunLocations();
     expect(locations.single.takeoffLat, 1);
+  });
+
+  test('parapente flights lose their run, kept in the comment', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.saveFlights([
+      FlightEntry(
+        id: 'p',
+        discipline: Discipline.parapente,
+        date: DateTime(2026, 11, 5),
+        site: 'Semnoz',
+        run: 'Soaring',
+        wing: 'Xi',
+        comment: 'avec Marco',
+      ),
+      flight('s', 'Val d’Isere', 'Solaise'),
+    ]);
+    await storage.applyDataFixes();
+    final flights = await storage.loadFlights();
+    expect(flights.first.run, '');
+    expect(flights.first.comment, 'avec Marco · Soaring');
+    expect(flights.last.run, 'Solaise');
   });
 }
