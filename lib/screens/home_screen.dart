@@ -148,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _load() async {
+    await _storage.seedPresetSites();
     // Run independent reads in parallel instead of one after another - the
     // flights/sites/runs/wings reads don't depend on each other at all.
     final results = await Future.wait([
