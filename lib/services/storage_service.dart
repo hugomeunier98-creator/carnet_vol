@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/preset_sites.dart';
+import '../data/site_aliases.dart';
 import '../models/flight_entry.dart';
 import '../models/run_location.dart';
 
@@ -98,4 +99,42 @@ class StorageService {
 
   static const _presetSitesKey = 'preset_sites_version';
   static const _presetSitesVersion = 1;
+
+  /// Renames sites stored under another spelling (lib/data/site_aliases.dart)
+  /// in flights, site names and GPS points. A point already set under the
+  /// app's name wins over one under another spelling.
+  Future<void> applySiteAliases() async {
+    final flights = await loadFlights();
+    if (flights.any((f) => canonicalSite(f.site) != f.site)) {
+      await saveFlights([
+        for (final f in flights) f.copyWith(site: canonicalSite(f.site)),
+      ]);
+    }
+
+    final sites = await loadSites();
+    if (sites.any((s) => canonicalSite(s) != s)) {
+      await saveSites(sites.map(canonicalSite).toSet().toList()..sort());
+    }
+
+    final locations = await loadRunLocations();
+    if (locations.any((l) => canonicalSite(l.site) != l.site)) {
+      final kept = locations.where((l) => canonicalSite(l.site) == l.site);
+      final renamed = <RunLocation>[];
+      for (final l in locations.where((l) => canonicalSite(l.site) != l.site)) {
+        final site = canonicalSite(l.site);
+        if ([...kept, ...renamed].any((k) => k.matches(site, l.run))) continue;
+        renamed.add(
+          RunLocation(
+            site: site,
+            run: l.run,
+            takeoffLat: l.takeoffLat,
+            takeoffLng: l.takeoffLng,
+            landingLat: l.landingLat,
+            landingLng: l.landingLng,
+          ),
+        );
+      }
+      await saveRunLocations([...kept, ...renamed]);
+    }
+  }
 }

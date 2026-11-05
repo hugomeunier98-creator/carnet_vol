@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../theme/app_colors.dart';
+import '../data/site_aliases.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../utils/date_format.dart';
@@ -85,7 +86,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
       id: widget.existing?.id ?? const Uuid().v4(),
       discipline: _discipline,
       date: _date,
-      site: _siteController.text.trim(),
+      site: canonicalSite(_siteController.text.trim()),
       run: _runController.text.trim(),
       verticalOrDuration: _verticalController.text.trim(),
       wing: _wingController.text.trim(),

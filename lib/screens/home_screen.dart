@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../data/site_aliases.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/discipline_icon.dart';
@@ -149,6 +150,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _load() async {
     await _storage.seedPresetSites();
+    await _storage.applySiteAliases();
     // Run independent reads in parallel instead of one after another - the
     // flights/sites/runs/wings reads don't depend on each other at all.
     final results = await Future.wait([
@@ -319,8 +321,10 @@ class _HomeScreenState extends State<HomeScreen>
     final imported = await _export.importFromFile(discipline);
     if (imported == null) return;
     await _backup.mergeRunLocations(imported.runLocations);
+    await _storage.applySiteAliases();
     setState(() {
-      _sites = {..._sites, ...imported.sites}.toList()..sort();
+      _sites = {..._sites, ...imported.sites.map(canonicalSite)}.toList()
+        ..sort();
       _runs = {..._runs, ...imported.runs}.toList()..sort();
       _wings = {..._wings, ...imported.wings}.toList()..sort();
     });
@@ -345,10 +349,8 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _handleManageNames() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const PageColors(
-          top: AppColors.accent,
-          child: ManageNamesScreen(),
-        ),
+        builder: (_) =>
+            const PageColors(top: AppColors.accent, child: ManageNamesScreen()),
       ),
     );
     await _load();
@@ -356,7 +358,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _mergeImported(List<FlightEntry> imported, {int gpsPoints = 0}) {
     setState(() {
-      for (final entry in imported) {
+      for (final raw in imported) {
+        final entry = raw.copyWith(site: canonicalSite(raw.site));
         // The same flight (exported then imported back), else the same
         // number in the same discipline (a re-pasted Notes table: parapente
         // #12 is not speedflying #12).
@@ -691,13 +694,21 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ),
-            item(Icons.download_outlined, 'Importer des données', _handleImport),
+            item(
+              Icons.download_outlined,
+              'Importer des données',
+              _handleImport,
+            ),
             item(
               Icons.upload_outlined,
               'Exporter les données (.json)',
               () => _handleExport('json'),
             ),
-            item(Icons.merge_type, 'Gérer les sites & runs', _handleManageNames),
+            item(
+              Icons.merge_type,
+              'Gérer les sites & runs',
+              _handleManageNames,
+            ),
             item(
               Icons.system_update_outlined,
               'Rechercher des mises à jour',
@@ -964,8 +975,7 @@ class _SummaryCard extends StatelessWidget {
           ];
 
     final cs = Theme.of(context).colorScheme;
-    final accent =
-AppColors.accentOn(context);
+    final accent = AppColors.accentOn(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
