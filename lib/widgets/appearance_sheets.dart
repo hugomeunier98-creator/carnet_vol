@@ -129,18 +129,6 @@ Future<void> showAccentSheet(BuildContext context) {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-            child: Text(
-              "Sur iPhone, la bande en haut de l'écran prend la nouvelle "
-              "couleur au prochain lancement de l'app.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 12,
-              ),
-            ),
-          ),
         ],
       ),
     ),
