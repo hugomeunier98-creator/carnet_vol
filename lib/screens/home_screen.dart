@@ -8,6 +8,7 @@ import '../widgets/appearance_sheets.dart';
 import '../widgets/choice_sheet.dart';
 import 'calendar_screen.dart';
 import 'sites_map_screen.dart';
+import 'stats_screen.dart';
 import '../widgets/discipline_icon.dart';
 import '../widgets/page_colors.dart';
 import '../services/app_update.dart';
@@ -262,6 +263,17 @@ class _HomeScreenState extends State<HomeScreen>
       _flights.sort(compareNewestFirst);
     });
     await _persist();
+  }
+
+  Future<void> _openStats() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PageColors(
+          top: AppColors.accent,
+          child: StatsScreen(flights: _flights, discipline: _tabDiscipline),
+        ),
+      ),
+    );
   }
 
   Future<void> _openMap() async {
@@ -627,18 +639,29 @@ class _HomeScreenState extends State<HomeScreen>
               letterSpacing: -0.5,
             ),
           ),
+          // Compact: five buttons beside the title on a phone.
+          actionsIconTheme: const IconThemeData(size: 22),
           actions: [
             IconButton(
+              tooltip: 'Statistiques',
+              visualDensity: VisualDensity.compact,
+              onPressed: _openStats,
+              icon: const Icon(Icons.bar_chart),
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
               tooltip: 'Carte des sites',
               onPressed: _openMap,
               icon: const Icon(Icons.map_outlined),
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
               tooltip: 'Calendrier',
               onPressed: _openCalendar,
               icon: const Icon(Icons.calendar_month_outlined),
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
               tooltip: 'Filtrer',
               onPressed: _openFilterSheet,
               icon: Badge(
@@ -690,6 +713,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Builder(
       builder: (context) => IconButton(
         tooltip: 'Menu',
+        visualDensity: VisualDensity.compact,
         icon: const Icon(Icons.more_horiz),
         onPressed: () => Scaffold.of(context).openEndDrawer(),
       ),
