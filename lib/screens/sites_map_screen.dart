@@ -55,7 +55,7 @@ class _SitesMapScreenState extends State<SitesMapScreen> {
   Object? _error;
   List<_FlownPlace> _places = [];
   double _zoom = 3;
-  _Layer _layer = _Layer.topo;
+  _Layer _layer = _Layer.satellite;
   dynamic _controller;
 
   @override
