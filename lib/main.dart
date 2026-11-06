@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'screens/home_screen.dart';
+import 'services/app_settings.dart';
 import 'services/safe_area.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppSettings.instance.load();
   // No browser history entries for in-app screens: otherwise iOS Safari
   // takes the left-edge swipe as its own "back" (showing a blank snapshot
   // of the page while it reloads the previous state). Without history it
@@ -22,13 +25,21 @@ class CarnetVolApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Carnet de vol',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      builder: (context, child) => _withSafeArea(context, child!),
-      home: const HomeScreen(),
+    final settings = AppSettings.instance;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) => MaterialApp(
+        // A new accent rebuilds every screen (many read AppColors.accent
+        // directly), back on the home screen.
+        key: ValueKey(settings.accent.toARGB32()),
+        title: 'Carnet de vol',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: settings.themeMode,
+        builder: (context, child) => _withSafeArea(context, child!),
+        home: const HomeScreen(),
+      ),
     );
   }
 

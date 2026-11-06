@@ -224,7 +224,7 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const base = AppColors.accent;
+    final base = AppColors.accent;
     final white70 = Colors.white.withValues(alpha: 0.8);
 
     Widget pill(Widget icon, String text) => Container(

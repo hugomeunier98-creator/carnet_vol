@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import '../data/site_aliases.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import '../widgets/appearance_sheets.dart';
 import '../widgets/choice_sheet.dart';
 import 'calendar_screen.dart';
 import '../widgets/discipline_icon.dart';
@@ -367,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen>
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
-            const PageColors(top: AppColors.accent, child: ManageNamesScreen()),
+            PageColors(top: AppColors.accent, child: const ManageNamesScreen()),
       ),
     );
     await _load();
@@ -724,6 +725,16 @@ class _HomeScreenState extends State<HomeScreen>
               Icons.merge_type,
               'Gérer les sites & runs',
               _handleManageNames,
+            ),
+            item(
+              Icons.contrast,
+              'Thème (clair / sombre)',
+              () => showThemeSheet(context),
+            ),
+            item(
+              Icons.palette_outlined,
+              "Couleur de l'appli",
+              () => showAccentSheet(context),
             ),
             item(
               Icons.system_update_outlined,

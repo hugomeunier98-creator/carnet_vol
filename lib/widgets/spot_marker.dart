@@ -4,14 +4,16 @@ import '../theme/app_colors.dart';
 
 /// Takeoff or landing.
 enum Spot {
-  // An arrow leaving the slope.
-  takeoff(Icons.north_east, AppColors.accent),
+  // An arrow leaving the slope, in the app's accent.
+  takeoff(Icons.north_east, null),
   // The landing target.
   landing(Icons.adjust, Color(0xFF2E3440));
 
   final IconData icon;
-  final Color color;
-  const Spot(this.icon, this.color);
+  final Color? _color;
+  const Spot(this.icon, this._color);
+
+  Color get color => _color ?? AppColors.accent;
 }
 
 /// A round badge for a takeoff or landing: white glyph on the spot's

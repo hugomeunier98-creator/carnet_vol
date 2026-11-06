@@ -215,7 +215,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
-    const accent = AppColors.accent;
+    final accent = AppColors.accent;
     return PageColors(
       top: AppColors.accent,
       child: Scaffold(
