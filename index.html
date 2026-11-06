@@ -54,23 +54,45 @@
     (lib/widgets/page_colors.dart). iOS ignores changes made to the existing
     theme-color tag and styles, so both are replaced by new elements.
   -->
+  <!--
+    The accent chosen in the app (menu ⋯ → Couleur de l'appli), saved by
+    shared_preferences as "flutter.accent_color" (ARGB number): it colours
+    the page and the loading screen from the start, hence the status bar.
+  -->
+  <script>
+    (function () {
+      var accent = '#D9480F';
+      try {
+        var argb = JSON.parse(localStorage.getItem('flutter.accent_color'));
+        if (typeof argb === 'number') {
+          accent = '#' + ('00000' + (argb & 0xFFFFFF).toString(16)).slice(-6);
+        }
+      } catch (e) {}
+      document.documentElement.style.setProperty('--accent', accent);
+      window.carnetVolAccent = accent;
+    })();
+  </script>
   <style>
     html, body { overscroll-behavior-x: none; }
     /* Full height, or the two-colour gradient repeats as stripes while the
        page is still empty (during loading). */
     html, body { height: 100%; margin: 0; background-repeat: no-repeat; }
     html, body {
-      background: linear-gradient(to bottom, #D9480F 0 50%, #faf2f0 50% 100%);
-      background-color: #D9480F;
+      background: linear-gradient(to bottom, var(--accent) 0 50%, #faf2f0 50% 100%);
+      background-color: var(--accent);
     }
     @media (prefers-color-scheme: dark) {
       html, body {
-        background: linear-gradient(to bottom, #D9480F 0 50%, #1e1b1a 50% 100%);
-        background-color: #D9480F;
+        background: linear-gradient(to bottom, var(--accent) 0 50%, #1e1b1a 50% 100%);
+        background-color: var(--accent);
       }
     }
   </style>
   <meta name="theme-color" content="#D9480F">
+  <script>
+    document.querySelector('meta[name="theme-color"]').content =
+      window.carnetVolAccent;
+  </script>
   <script>
     window.carnetVolSetPageColors = function (top, bottom) {
       var style = document.createElement('style');
@@ -154,12 +176,12 @@
   <!--
     Update check. GitHub Pages lets browsers cache every file for 10 minutes,
     so a plain reload can keep serving the old build. scripts/deploy.sh
-    replaces 20261106-1319-2c25d99 below and publishes build.json (the live build id
+    replaces 20261106-1334-21cc51f below and publishes build.json (the live build id
     plus the list of its files). When they differ, the new files are
     re-downloaded into the HTTP cache before reloading.
   -->
   <script>
-    window.carnetVolBuildId = '20261106-1319-2c25d99';
+    window.carnetVolBuildId = '20261106-1334-21cc51f';
     (function () {
       var stamped = window.carnetVolBuildId.indexOf('__') !== 0;
 
@@ -219,7 +241,7 @@
   <style>
     #splash::before {
       content: ""; position: absolute; top: 0; left: 0; right: 0; height: 120px;
-      background: #D9480F; border-radius: 0 0 24px 24px;
+      background: var(--accent); border-radius: 0 0 24px 24px;
     }
   </style>
   <style>
