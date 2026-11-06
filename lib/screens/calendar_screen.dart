@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../theme/app_colors.dart';
 import '../utils/date_format.dart';
@@ -353,7 +354,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 [
                   f.discipline.label,
                   if (f.wing.isNotEmpty) f.wing,
-                  if (f.verticalOrDuration.isNotEmpty) f.verticalOrDuration,
+                  if (f.discipline == Discipline.parapente &&
+                      f.verticalOrDuration.isNotEmpty)
+                    f.verticalOrDuration,
                 ].join(' · '),
               ),
               trailing: Text(

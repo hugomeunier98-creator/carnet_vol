@@ -92,7 +92,9 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
       run: _discipline == Discipline.parapente
           ? ''
           : _runController.text.trim(),
-      verticalOrDuration: _verticalController.text.trim(),
+      verticalOrDuration: _discipline == Discipline.parapente
+          ? _verticalController.text.trim()
+          : '',
       wing: _wingController.text.trim(),
       count: _count,
       comment: _commentController.text.trim(),
@@ -292,23 +294,18 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
                     options: widget.knownWings[_discipline] ?? const [],
                     required: true,
                   ),
-                  TextFormField(
-                    controller: _verticalController,
-                    // Speedflying logs mostly vertical drop; parapente a duration.
-                    decoration: _discipline == Discipline.parapente
-                        ? InputDecoration(
-                            labelText: 'Durée',
-                            helperText: 'ex: 45min, 1h30',
-                            prefixIcon: const Icon(Icons.timer_outlined),
-                            suffixIcon: ClearButton(_verticalController),
-                          )
-                        : InputDecoration(
-                            labelText: 'Dénivelé / durée',
-                            helperText: 'ex: 800, 1h, soaring, 600/soaring',
-                            prefixIcon: const Icon(Icons.trending_down),
-                            suffixIcon: ClearButton(_verticalController),
-                          ),
-                  ),
+                  // Parapente logs a duration; speedflying only counts
+                  // flights (no duration, no vertical drop).
+                  if (_discipline == Discipline.parapente)
+                    TextFormField(
+                      controller: _verticalController,
+                      decoration: InputDecoration(
+                        labelText: 'Durée',
+                        helperText: 'ex: 45min, 1h30',
+                        prefixIcon: const Icon(Icons.timer_outlined),
+                        suffixIcon: ClearButton(_verticalController),
+                      ),
+                    ),
                   _countStepper(),
                 ],
               ),

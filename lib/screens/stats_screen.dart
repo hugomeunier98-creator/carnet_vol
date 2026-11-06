@@ -32,23 +32,27 @@ class _StatsScreenState extends State<StatsScreen> {
     final flights = widget.flights
         .where((f) => _discipline == null || f.discipline == _discipline)
         .toList();
-    final minutes = flights.fold(0, (sum, f) => sum + entryMinutes(f));
+    // Only parapente logs durations; speedflying counts flights.
+    final timed = flights
+        .where((f) => f.discipline == Discipline.parapente)
+        .toList();
+    final isParapente = _discipline == Discipline.parapente;
+    final showHours = timed.isNotEmpty;
+    final minutes = timed.fold(0, (sum, f) => sum + entryMinutes(f));
     final count = _count(flights);
-    final wings = totalsBy(flights, (f) => f.wing, entryMinutes);
+    final wings = isParapente
+        ? totalsBy(flights, (f) => f.wing, entryMinutes)
+        : totalsBy(flights, (f) => f.wing, (f) => f.count);
     final sites = totalsBy(flights, (f) => f.site, (f) => f.count);
-    final longest = flights.isEmpty
+    final longest = timed.isEmpty
         ? null
-        : flights.reduce(
+        : timed.reduce(
             (a, b) =>
                 flightMinutes(a.verticalOrDuration) >=
                     flightMinutes(b.verticalOrDuration)
                 ? a
                 : b,
           );
-    final vertical = flights.fold(
-      0,
-      (sum, f) => sum + (f.verticalMeters ?? 0) * f.count,
-    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Statistiques')),
@@ -80,28 +84,41 @@ class _StatsScreenState extends State<StatsScreen> {
               crossAxisSpacing: 10,
               childAspectRatio: 1.9,
               children: [
-                _Tile('Heures de vol', formatMinutes(minutes)),
                 _Tile('Vols', '$count'),
-                _Tile('Durée moyenne', formatMinutes(minutes ~/ count)),
                 _Tile('Sites', '${sites.length}'),
-                if (_discipline != Discipline.parapente && vertical > 0)
-                  _Tile('Dénivelé cumulé', '${_thousands(vertical)} m'),
-                _Tile(
-                  'Plus long vol',
-                  formatMinutes(flightMinutes(longest!.verticalOrDuration)),
-                  detail:
-                      '${longest.site} · ${formatNumericDate(longest.date)}',
-                ),
+                if (showHours)
+                  _Tile(
+                    isParapente ? 'Heures de vol' : 'Heures de vol (parapente)',
+                    formatMinutes(minutes),
+                  ),
+                if (isParapente) ...[
+                  _Tile(
+                    'Durée moyenne',
+                    formatMinutes(minutes ~/ _count(timed)),
+                  ),
+                  _Tile(
+                    'Plus long vol',
+                    formatMinutes(flightMinutes(longest!.verticalOrDuration)),
+                    detail:
+                        '${longest.site} · ${formatNumericDate(longest.date)}',
+                  ),
+                ],
               ],
             ),
             _Section(
-              title: 'Heures de vol par voile',
+              title: isParapente ? 'Heures de vol par voile' : 'Vols par voile',
               child: Column(
                 children: [
                   _Bars(
                     rows: [
                       for (final (wing, m) in _allWings ? wings : wings.take(8))
-                        (wing, m.toDouble(), formatMinutes(m)),
+                        (
+                          wing,
+                          m.toDouble(),
+                          isParapente
+                              ? formatMinutes(m)
+                              : '$m vol${m > 1 ? 's' : ''}',
+                        ),
                     ],
                   ),
                   if (wings.length > 8)
@@ -130,25 +147,23 @@ class _StatsScreenState extends State<StatsScreen> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text(
-                'Vol sans durée ou « plouf » : compté 10 min.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+            if (showHours)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  'Vol sans durée ou « plouf » : compté 10 min.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
           ],
         ],
       ),
     );
   }
-
-  static String _thousands(int n) =>
-      n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => ' ');
 }
 
 class _Tile extends StatelessWidget {
