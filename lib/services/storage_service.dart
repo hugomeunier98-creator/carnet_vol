@@ -98,7 +98,7 @@ class StorageService {
   }
 
   static const _presetSitesKey = 'preset_sites_version';
-  static const _presetSitesVersion = 1;
+  static const _presetSitesVersion = 2;
 
   /// Renames sites stored under another spelling (lib/data/site_aliases.dart)
   /// in flights, site names and GPS points. A point already set under the

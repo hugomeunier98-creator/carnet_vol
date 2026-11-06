@@ -33,7 +33,11 @@ void main() {
     await storage.seedPresetSites();
     expect((await storage.loadRunLocations()).length, presetSites.length);
     expect(await storage.loadSites(), contains('Rismålheia'));
-    expect(await storage.loadRuns(), ['Solaise']);
+    expect(await storage.loadRuns(), [
+      'Déco Est',
+      'Petit Taillefer',
+      'Solaise',
+    ]);
 
     // Removed by the user afterwards: not brought back.
     await storage.saveRunLocations([]);
