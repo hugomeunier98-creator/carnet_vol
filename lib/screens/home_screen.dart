@@ -5,6 +5,7 @@ import '../data/site_aliases.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../widgets/choice_sheet.dart';
+import 'calendar_screen.dart';
 import '../widgets/discipline_icon.dart';
 import '../widgets/page_colors.dart';
 import '../services/app_update.dart';
@@ -259,6 +260,20 @@ class _HomeScreenState extends State<HomeScreen>
       _flights.sort(compareNewestFirst);
     });
     await _persist();
+  }
+
+  Future<void> _openCalendar() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PageColors(
+          top: AppColors.accent,
+          child: CalendarScreen(
+            flights: () => _flights,
+            onOpenFlight: _openDetail,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openDetail(FlightEntry existing) async {
@@ -600,6 +615,11 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           actions: [
+            IconButton(
+              tooltip: 'Calendrier',
+              onPressed: _openCalendar,
+              icon: const Icon(Icons.calendar_month_outlined),
+            ),
             IconButton(
               tooltip: 'Filtrer',
               onPressed: _openFilterSheet,
