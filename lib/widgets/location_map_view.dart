@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../models/run_location.dart';
 import '../utils/latlng_parser.dart';
+import 'spot_marker.dart';
 
 // flutter_map/latlong2 are only needed on this one screen when a flight
 // actually has GPS coordinates - deferred-loading them keeps the initial
@@ -153,7 +154,7 @@ class _LocationMapViewState extends State<LocationMapView> {
                             loc.takeoffLat!,
                             loc.takeoffLng!,
                           ),
-                          child: const Icon(Icons.flight_takeoff, color: Colors.green, size: 32),
+                          child: const SpotMarker(Spot.takeoff),
                         ),
                       ),
                     if (loc.hasLanding)
@@ -169,7 +170,7 @@ class _LocationMapViewState extends State<LocationMapView> {
                             loc.landingLat!,
                             loc.landingLng!,
                           ),
-                          child: const Icon(Icons.flight_land, color: Colors.redAccent, size: 32),
+                          child: const SpotMarker(Spot.landing),
                         ),
                       ),
                   ],

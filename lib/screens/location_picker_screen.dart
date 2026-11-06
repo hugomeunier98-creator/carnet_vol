@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart' deferred as fm;
 import 'package:latlong2/latlong.dart' deferred as ll;
 
 import '../utils/latlng_parser.dart';
+import '../widgets/spot_marker.dart';
 
 typedef LatLngPair = (double, double);
 
@@ -136,13 +137,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
-  dynamic _marker(LatLngPair p, IconData icon, Color color) => fm.Marker(
+  dynamic _marker(LatLngPair p, Spot spot) => fm.Marker(
         point: ll.LatLng(p.$1, p.$2),
-        width: 40,
-        height: 40,
-        child: Icon(icon, color: color, size: 36, shadows: const [
-          Shadow(color: Colors.white, blurRadius: 6),
-        ]),
+        width: 34,
+        height: 34,
+        child: SpotMarker(spot, size: 34),
       );
 
   Widget _map() {
@@ -155,8 +154,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       children: [
         _tileLayer(),
         fm.MarkerLayer(markers: [
-          if (_takeoff != null) _marker(_takeoff!, Icons.flight_takeoff, Colors.green.shade700),
-          if (_landing != null) _marker(_landing!, Icons.flight_land, Colors.red.shade600),
+          if (_takeoff != null) _marker(_takeoff!, Spot.takeoff),
+          if (_landing != null) _marker(_landing!, Spot.landing),
         ]),
         fm.RichAttributionWidget(
           alignment: fm.AttributionAlignment.bottomLeft,
@@ -166,14 +165,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
-  Widget _pointRow(_Point point, String label, IconData icon, Color color, LatLngPair? value) {
+  Widget _pointRow(_Point point, String label, Spot spot, LatLngPair? value) {
     final selected = _editing == point;
     return ListTile(
       dense: true,
       selected: selected,
-      selectedTileColor: color.withValues(alpha: 0.12),
+      selectedTileColor: spot.color.withValues(alpha: 0.10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      leading: Icon(icon, color: color),
+      leading: SpotMarker(spot, size: 30, onMap: false),
       title: Text(label),
       subtitle: Text(value == null ? 'Touchez la carte pour placer' : formatLatLng(value.$1, value.$2)),
       trailing: value == null
@@ -229,10 +228,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _pointRow(_Point.takeoff, 'Décollage', Icons.flight_takeoff,
-                      Colors.green.shade700, _takeoff),
-                  _pointRow(_Point.landing, 'Atterrissage', Icons.flight_land,
-                      Colors.red.shade600, _landing),
+                  _pointRow(_Point.takeoff, 'Décollage', Spot.takeoff, _takeoff),
+                  _pointRow(_Point.landing, 'Atterrissage', Spot.landing, _landing),
                 ],
               ),
             ),
