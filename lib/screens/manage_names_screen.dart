@@ -5,9 +5,11 @@ import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/run_locations.dart';
+import '../utils/site_share.dart';
 import '../widgets/choice_sheet.dart';
 import '../widgets/clear_button.dart';
 import '../widgets/location_edit_dialog.dart';
+import '../widgets/share_site_sheet.dart';
 
 /// Sites, each with its runs below it. A site is the takeoff or flying
 /// area; a run is a speedflying line on that site, with its own takeoff
@@ -315,6 +317,11 @@ class _ManageNamesScreenState extends State<ManageNamesScreen> {
 
   // --- Shared ---
 
+  void _share(String site, String run) => showShareSiteSheet(
+    context,
+    siteShareText(site, run, _locationOf(site, run)),
+  );
+
   /// Takeoff and landing of [site] itself (empty [run]) or of one of its
   /// runs, on the map or as text.
   Future<void> _editLocation(String site, String run) async {
@@ -454,6 +461,8 @@ class _ManageNamesScreenState extends State<ManageNamesScreen> {
                 'Coordonnées GPS',
                 () => _editLocation(site, ''),
               ),
+              if (location?.hasAny ?? false)
+                (Icons.ios_share, 'Partager', () => _share(site, '')),
               (Icons.add, 'Ajouter un run', () => _addRun(site)),
               (
                 Icons.drive_file_rename_outline,
@@ -481,6 +490,8 @@ class _ManageNamesScreenState extends State<ManageNamesScreen> {
                   'Coordonnées GPS',
                   () => _editLocation(site, run),
                 ),
+                if (_locationOf(site, run)?.hasAny ?? false)
+                  (Icons.ios_share, 'Partager', () => _share(site, run)),
                 (
                   Icons.drive_file_rename_outline,
                   'Renommer / fusionner',

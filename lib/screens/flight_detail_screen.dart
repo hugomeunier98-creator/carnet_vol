@@ -10,6 +10,7 @@ import '../services/storage_service.dart';
 import '../utils/date_format.dart';
 import '../utils/flight_numbering.dart';
 import '../utils/run_locations.dart';
+import '../utils/site_share.dart';
 import '../widgets/location_edit_dialog.dart';
 import '../widgets/location_map_view.dart';
 import '../widgets/photos_section.dart';
@@ -194,6 +195,11 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                             : LocationMapView(
                                 location: _location!,
                                 onEdit: _editLocation,
+                                shareText: siteShareText(
+                                  _entry.site,
+                                  _location!.run,
+                                  _location,
+                                ),
                               ),
                       ),
                       const SizedBox(height: 12),

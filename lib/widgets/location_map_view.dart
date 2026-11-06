@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../models/run_location.dart';
 import '../utils/latlng_parser.dart';
+import 'share_site_sheet.dart';
 import 'spot_marker.dart';
 
 // flutter_map/latlong2 are only needed on this one screen when a flight
@@ -15,7 +16,16 @@ class LocationMapView extends StatefulWidget {
   final RunLocation location;
   final VoidCallback onEdit;
 
-  const LocationMapView({super.key, required this.location, required this.onEdit});
+  /// Message of the "Partager" button (site and its points); no button
+  /// when null.
+  final String? shareText;
+
+  const LocationMapView({
+    super.key,
+    required this.location,
+    required this.onEdit,
+    this.shareText,
+  });
 
   @override
   State<LocationMapView> createState() => _LocationMapViewState();
@@ -188,13 +198,23 @@ class _LocationMapViewState extends State<LocationMapView> {
           ),
         ),
         const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: widget.onEdit,
-            icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
-            label: const Text('Modifier les coordonnées'),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (widget.shareText != null)
+              TextButton.icon(
+                onPressed: () => shareText(widget.shareText!),
+                icon: const Icon(Icons.ios_share, size: 18),
+                label: const Text('Partager'),
+              )
+            else
+              const SizedBox.shrink(),
+            TextButton.icon(
+              onPressed: widget.onEdit,
+              icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+              label: const Text('Modifier les coordonnées'),
+            ),
+          ],
         ),
       ],
     );
