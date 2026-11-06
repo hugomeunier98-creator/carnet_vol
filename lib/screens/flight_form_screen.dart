@@ -7,6 +7,7 @@ import '../models/discipline.dart';
 import '../models/flight_entry.dart';
 import '../utils/date_format.dart';
 import '../widgets/page_colors.dart';
+import '../widgets/choice_sheet.dart';
 import '../widgets/clear_button.dart';
 import '../widgets/discipline_icon.dart';
 
@@ -100,7 +101,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     Navigator.of(context).pop(entry);
   }
 
-  Widget _autocompleteField({
+  Widget _choiceField({
     Key? key,
     required String label,
     required IconData icon,
@@ -108,34 +109,13 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
     required List<String> options,
     bool required = false,
   }) {
-    return Autocomplete<String>(
+    return ChoiceFormField(
       key: key,
-      optionsBuilder: (v) {
-        if (v.text.isEmpty) return options;
-        return options.where(
-          (s) => s.toLowerCase().contains(v.text.toLowerCase()),
-        );
-      },
-      initialValue: TextEditingValue(text: controller.text),
-      onSelected: (v) => controller.text = v,
-      fieldViewBuilder: (context, fieldController, focusNode, onSubmit) {
-        fieldController.text = controller.text;
-        fieldController.addListener(
-          () => controller.text = fieldController.text,
-        );
-        return TextFormField(
-          controller: fieldController,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon),
-            suffixIcon: ClearButton(fieldController),
-          ),
-          validator: required
-              ? (v) => (v == null || v.trim().isEmpty) ? 'Champ requis' : null
-              : null,
-        );
-      },
+      controller: controller,
+      label: label,
+      icon: icon,
+      options: options,
+      required: required,
     );
   }
 
@@ -280,7 +260,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
               _FormSection(
                 title: 'Où',
                 children: [
-                  _autocompleteField(
+                  _choiceField(
                     label: _discipline == Discipline.parapente
                         ? 'Site / déco'
                         : 'Site',
@@ -292,7 +272,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
                   // A run is a speedflying line; in parapente the site is
                   // the takeoff or flying area.
                   if (_discipline != Discipline.parapente)
-                    _autocompleteField(
+                    _choiceField(
                       label: 'Run (optionnel)',
                       icon: Icons.route_outlined,
                       controller: _runController,
@@ -303,7 +283,7 @@ class _FlightFormScreenState extends State<FlightFormScreen> {
               _FormSection(
                 title: 'Vol',
                 children: [
-                  _autocompleteField(
+                  _choiceField(
                     // Keyed so the suggestions follow a change of discipline.
                     key: ValueKey(_discipline),
                     label: 'Voile',

@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import '../data/site_aliases.dart';
 import '../models/discipline.dart';
 import '../models/flight_entry.dart';
+import '../widgets/choice_sheet.dart';
 import '../widgets/discipline_icon.dart';
 import '../widgets/page_colors.dart';
 import '../services/app_update.dart';
@@ -416,27 +417,35 @@ class _HomeScreenState extends State<HomeScreen>
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 0,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Filtrer les vols',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Filtrer les vols',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Fermer',
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _filterDropdown(
+                  const SizedBox(height: 12),
+                  ChoiceFilterField(
                     label: 'Site',
                     value: site,
                     options: _sites,
@@ -445,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen>
                   // Runs are speedflying lines; parapente has none.
                   if (_tabDiscipline != Discipline.parapente) ...[
                     const SizedBox(height: 12),
-                    _filterDropdown(
+                    ChoiceFilterField(
                       label: 'Run',
                       value: run,
                       options: _runs,
@@ -453,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                   const SizedBox(height: 12),
-                  _filterDropdown(
+                  ChoiceFilterField(
                     label: 'Voile',
                     value: wing,
                     options: _wings,
@@ -561,25 +570,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         child: Text(text),
       ),
-    );
-  }
-
-  Widget _filterDropdown({
-    required String label,
-    required String? value,
-    required List<String> options,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String?>(
-      initialValue: value,
-      decoration: InputDecoration(labelText: label),
-      items: [
-        const DropdownMenuItem<String?>(value: null, child: Text('Tous')),
-        ...options.map(
-          (o) => DropdownMenuItem<String?>(value: o, child: Text(o)),
-        ),
-      ],
-      onChanged: onChanged,
     );
   }
 

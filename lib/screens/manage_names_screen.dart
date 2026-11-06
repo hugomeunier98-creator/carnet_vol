@@ -5,6 +5,7 @@ import '../models/run_location.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/run_locations.dart';
+import '../widgets/choice_sheet.dart';
 import '../widgets/clear_button.dart';
 import '../widgets/location_edit_dialog.dart';
 
@@ -194,14 +195,11 @@ class _ManageNamesScreenState extends State<ManageNamesScreen> {
                       'Déplace-les vers :',
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: target,
-                      isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Site'),
-                      items: [
-                        for (final s in others)
-                          DropdownMenuItem(value: s, child: Text(s)),
-                      ],
+                    ChoiceFilterField(
+                      label: 'Site',
+                      value: target,
+                      options: others,
+                      allLabel: 'Choisir un site',
                       onChanged: (v) => setDialogState(() => target = v),
                     ),
                   ],
