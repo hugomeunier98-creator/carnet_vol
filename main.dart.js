@@ -48678,7 +48678,7 @@ J(){return"_Point."+this.b}}
 A.jq.prototype={
 J(){return"_Layer."+this.b}}
 A.DC.prototype={
-a7(){return new A.ZK(B.Dv)}}
+a7(){return new A.ZK(B.Du)}}
 A.ZK.prototype={
 gx0(){var s=this.f
 return s===$?this.f=this.a.d:s},
@@ -49373,7 +49373,7 @@ A.iH.prototype={
 gP7(){var s=this.b,r=this.a
 return s.length===0?r:r+" \xb7 "+s}}
 A.G7.prototype={
-a7(){return new A.Le(A.b([],t.KL),B.Du)}}
+a7(){return new A.Le(A.b([],t.KL),B.Dv)}}
 A.Le.prototype={
 al(){this.aw()
 this.Cg()},
@@ -106920,22 +106920,22 @@ B.afH=new A.nq(6,0.11)
 B.afF=new A.nq(8,0.12)
 B.afE=new A.nq(12,0.14)
 B.rc=s([B.afD,B.afI,B.afG,B.afH,B.afF,B.afE],A.aj("y<nq>"))
-B.Du=new A.jr(0,"topo")
+B.ag4=new A.jr(0,"topo")
 B.D_=new A.bM("Topographique",null,null,null,null,null,null,null,null,null,null)
-B.a40=new A.fX(B.Du,B.D_,null,t.Q9)
-B.ag5=new A.jr(1,"satellite")
+B.a40=new A.fX(B.ag4,B.D_,null,t.Q9)
+B.Dv=new A.jr(1,"satellite")
 B.CX=new A.bM("Satellite",null,null,null,null,null,null,null,null,null,null)
-B.a42=new A.fX(B.ag5,B.CX,null,t.Q9)
+B.a42=new A.fX(B.Dv,B.CX,null,t.Q9)
 B.ag6=new A.jr(2,"plan")
 B.CW=new A.bM("Plan",null,null,null,null,null,null,null,null,null,null)
 B.a3X=new A.fX(B.ag6,B.CW,null,t.Q9)
 B.MO=s([B.a40,B.a42,B.a3X],A.aj("y<hd<jr>>"))
-B.Dv=new A.jq(1,"topo")
-B.a3Y=new A.fX(B.Dv,B.D_,null,t._X)
+B.Du=new A.jq(1,"topo")
+B.a3Y=new A.fX(B.Du,B.D_,null,t._X)
 B.ag7=new A.jq(2,"satellite")
 B.a3Z=new A.fX(B.ag7,B.CX,null,t._X)
-B.ag4=new A.jq(0,"plan")
-B.a4_=new A.fX(B.ag4,B.CW,null,t._X)
+B.ag5=new A.jq(0,"plan")
+B.a4_=new A.fX(B.ag5,B.CW,null,t._X)
 B.MQ=s([B.a3Y,B.a3Z,B.a4_],A.aj("y<hd<jq>>"))
 B.rd=s([0,21,51,121,151,191,271,321,360],t.n)
 B.MX=s([-1,0,0,1,0,0,-1,0,1,0,0,0,-1,1,0,1,1,1,1,0],t.n)
