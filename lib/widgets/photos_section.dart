@@ -4,24 +4,27 @@ import 'package:flutter/services.dart';
 import '../services/external_url.dart';
 import '../services/photos_link.dart';
 
-/// Opens the phone's photo app (Photos on iPhone, Google Photos elsewhere)
-/// with the flight's date copied, ready to paste into its search. The
-/// media themselves stay in the photo library.
+/// Copies the flight's date for the search of the photo app, and on iPhone
+/// opens Photos. The media themselves stay in the photo library.
 class PhotosSection extends StatelessWidget {
   final DateTime date;
 
   const PhotosSection({super.key, required this.date});
 
-  void _copyDateAndOpenPhotos(BuildContext context, PhotosLink link) {
+  void _copyDate(BuildContext context, PhotosLink link) {
+    final query = PhotosLink.searchQuery(date);
     // Not awaited: both the clipboard write and the app switch must start
     // inside the tap handler, or iOS Safari refuses them.
-    Clipboard.setData(ClipboardData(text: link.query));
-    openExternalUrl(link.url, newTab: !link.opensApp);
+    Clipboard.setData(ClipboardData(text: query));
+    final url = link.url;
+    if (url != null) openExternalUrl(url);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '« ${link.query} » copié : colle-le dans la recherche de '
-          '${link.appName} si besoin',
+          url != null
+              ? '« $query » copié : colle-le dans la recherche de Photos'
+              : "Date du vol copiée à coller dans l'onglet recherche de "
+                    "l'application Photos",
         ),
       ),
     );
@@ -29,11 +32,13 @@ class PhotosSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final link = PhotosLink.forDate(date);
+    final link = PhotosLink.forDevice();
     return FilledButton.tonalIcon(
-      onPressed: () => _copyDateAndOpenPhotos(context, link),
+      onPressed: () => _copyDate(context, link),
       icon: const Icon(Icons.photo_library_outlined),
-      label: Text('Copier date et ouvrir ${link.appName}'),
+      label: Text(
+        link.url != null ? 'Copier date et ouvrir Photos' : 'Ouvrir Photos',
+      ),
     );
   }
 }

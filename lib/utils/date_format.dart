@@ -24,10 +24,6 @@ String formatShortMonth(DateTime d) => _shortMonths[d.month - 1];
 String formatLongDate(DateTime d) =>
     '${_capitalize(_weekdays[d.weekday - 1])} ${d.day} ${_months[d.month - 1]} ${d.year}';
 
-/// "22 septembre 2026"
-String formatDayMonthYear(DateTime d) =>
-    '${d.day} ${_months[d.month - 1]} ${d.year}';
-
 /// "22/09/2026"
 String formatNumericDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
