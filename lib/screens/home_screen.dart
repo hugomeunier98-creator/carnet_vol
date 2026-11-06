@@ -7,6 +7,7 @@ import '../models/flight_entry.dart';
 import '../widgets/appearance_sheets.dart';
 import '../widgets/choice_sheet.dart';
 import 'calendar_screen.dart';
+import 'sites_map_screen.dart';
 import '../widgets/discipline_icon.dart';
 import '../widgets/page_colors.dart';
 import '../services/app_update.dart';
@@ -261,6 +262,17 @@ class _HomeScreenState extends State<HomeScreen>
       _flights.sort(compareNewestFirst);
     });
     await _persist();
+  }
+
+  Future<void> _openMap() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PageColors(
+          top: AppColors.accent,
+          child: SitesMapScreen(flights: _flights),
+        ),
+      ),
+    );
   }
 
   Future<void> _openCalendar() async {
@@ -616,6 +628,11 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           actions: [
+            IconButton(
+              tooltip: 'Carte des sites',
+              onPressed: _openMap,
+              icon: const Icon(Icons.map_outlined),
+            ),
             IconButton(
               tooltip: 'Calendrier',
               onPressed: _openCalendar,
