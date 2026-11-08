@@ -1,5 +1,5 @@
 Carnet de vol
-Copyright (c) 2026 Meunier. Tous droits réservés. All rights reserved.
+Copyright (c) 2026 H. Meunier. Tous droits réservés. All rights reserved.
 
 Ce logiciel (code source, code compilé, design, textes, icônes) est protégé
 par le droit d'auteur. Il est mis à disposition gratuitement sur
