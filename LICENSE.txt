@@ -1,0 +1,20 @@
+Carnet de vol
+Copyright (c) 2026 Meunier. Tous droits réservés. All rights reserved.
+
+Ce logiciel (code source, code compilé, design, textes, icônes) est protégé
+par le droit d'auteur. Il est mis à disposition gratuitement sur
+https://hugomeunier98-creator.github.io/carnet_vol/ pour un usage personnel
+et non commercial.
+
+Sans autorisation écrite préalable de l'auteur, il est interdit de :
+- copier, reproduire ou réhéberger tout ou partie du logiciel ;
+- le modifier, l'adapter, le traduire ou en créer des œuvres dérivées ;
+- le décompiler ou le désassembler, sauf dans les cas prévus par la loi ;
+- le distribuer, le vendre, le louer ou en faire un usage commercial.
+
+Le logiciel est fourni « tel quel », sans garantie d'aucune sorte. L'auteur
+ne peut être tenu responsable d'aucun dommage résultant de son utilisation.
+
+Les bibliothèques tierces incluses restent soumises à leurs propres licences.
+
+Contact : hugomeunier98@gmail.com
