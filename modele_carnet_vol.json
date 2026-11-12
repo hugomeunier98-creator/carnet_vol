@@ -1,0 +1,64 @@
+{
+  "format": "carnet_vol_backup",
+  "version": 1,
+  "_aide": {
+    "principe": "Remplace les vols d'exemple par les tiens, puis dans l'appli : menu → Importer un fichier → ce fichier .json. Garde les deux premières lignes (format, version) telles quelles. Cette section _aide est ignorée à l'import, tu peux la laisser ou l'effacer.",
+    "flights": "Un bloc { } par ligne de ton tableur, séparés par des virgules (pas de virgule après le dernier).",
+    "sourceNumber": "Facultatif. Ton numéro de vol. Si tu réimportes le fichier, un vol de même numéro et même discipline est remplacé au lieu d'être ajouté en double.",
+    "discipline": "\"parapente\" ou \"speedflying\". Si absent : la discipline de l'onglet ouvert au moment de l'import.",
+    "date": "Obligatoire, au format AAAA-MM-JJ, par ex. \"2026-07-14\".",
+    "site": "Lieu ou déco.",
+    "run": "Surtout en speedflying ; en parapente, laisser \"\".",
+    "verticalOrDuration": "Durée en parapente : \"1h30\", \"45min\", \"plouf\". En speedflying, ce champ n'est pas compté.",
+    "wing": "Modèle de voile.",
+    "count": "Nombre de vols identiques regroupés sur cette ligne (1 par défaut).",
+    "comment": "Texte libre.",
+    "runLocations": "Facultatif. Coordonnées GPS en degrés décimaux (WGS84) du déco (takeoff) et de l'atterrissage (landing) d'un site (run = \"\") ou d'un run. Peut rester vide : [].",
+    "texte": "Les textes vont entre guillemets droits \"...\". Un guillemet à l'intérieur d'un texte s'écrit \\\". Enregistrer le fichier en UTF-8."
+  },
+  "flights": [
+    {
+      "sourceNumber": "1",
+      "discipline": "parapente",
+      "date": "2026-07-14",
+      "site": "Forclaz",
+      "run": "",
+      "verticalOrDuration": "1h30",
+      "wing": "Advance Alpha 7",
+      "count": 1,
+      "comment": "Thermique, retour au déco"
+    },
+    {
+      "sourceNumber": "2",
+      "discipline": "parapente",
+      "date": "2026-07-20",
+      "site": "Planfait",
+      "run": "",
+      "verticalOrDuration": "plouf",
+      "wing": "Advance Alpha 7",
+      "count": 2,
+      "comment": "Deux ploufs identiques"
+    },
+    {
+      "sourceNumber": "1",
+      "discipline": "speedflying",
+      "date": "2026-08-02",
+      "site": "Saint Hilaire",
+      "run": "Grande pente",
+      "verticalOrDuration": "",
+      "wing": "Ozone Firefly",
+      "count": 3,
+      "comment": "3 descentes du même run"
+    }
+  ],
+  "runLocations": [
+    {
+      "site": "Forclaz",
+      "run": "",
+      "takeoffLat": 45.81413,
+      "takeoffLng": 6.24688,
+      "landingLat": 45.78106,
+      "landingLng": 6.22177
+    }
+  ]
+}
